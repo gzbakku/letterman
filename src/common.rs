@@ -1,6 +1,6 @@
 
 
-pub fn error(e: &str) -> String {
+pub fn error(e: &'static str) -> String {
     println!("!!! {:?}",e);
     return String::from(e);
 }

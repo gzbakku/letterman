@@ -1,2 +1,6 @@
 /target
 **/*.rs.bk
+/smtp4dev
+/mail
+MailHog_windows_386.exe
+fakeSMTP-2.0.jar

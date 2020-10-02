@@ -11,45 +11,59 @@ pub struct READ {
     pub message:String
 }
 
-pub fn send_file(path:&str,stream:&mut TcpStream) -> Result<(),String> {
+pub fn get_file_name(path:String) -> Result<String,&'static str>{
 
-    match File::open(path) {
-        Ok(mut reader)=>{
-            let mut buffer = Vec::new();
-            match reader.read_to_end(&mut buffer) {
-                Ok(_)=>{
-                    match send_only_bytes(stream,buffer) {
-                        Ok(_)=>{
-                            return Ok(());
-                        },
-                        Err(_)=>{
-                            return Err(error("failed-send_only_bytes-send_file"));
-                        }
-                    }
-                },
-                Err(e)=>{
-                    println!("error : {:?}",e);
-                    return Err(error("failed-read_file-send_file"));
-                }
-            }
+    let mut pool:Vec<&str>;
+    if path.contains("\\"){
+        pool = path.split("\\").collect::<Vec<&str>>();
+    } else
+    if path.contains("/"){
+        pool = path.split("/").collect::<Vec<&str>>();
+    } else {
+        return Ok(path);
+    }
+
+    match pool.pop(){
+        Some(v)=>{
+            return Ok(v.to_string());
         },
-        Err(e)=>{
-            println!("error : {:?}",e);
-            return Err(error("failed-open_file-send_file"));
+        None=>{
+            return Err("failed-extract-file_name");
         }
     }
 
 }
 
-pub fn send_only_bytes(stream:&mut TcpStream,data:Vec<u8>) -> Result<(),String> {
-    let encoded = base64::encode(&data);
-    println!("encoded : {:?}",encoded);
-    match stream.write_all(&encoded.as_bytes()){
-        Ok(_)=>{
-            return Ok(());
+pub struct Reader{
+    pub data:String,
+    pub name:String
+}
+
+pub fn read_file(path:String) -> Result<Reader,&'static str>{
+    match File::open(path.clone()) {
+        Ok(mut reader)=>{
+            let mut buffer = Vec::new();
+            match reader.read_to_end(&mut buffer) {
+                Ok(_)=>{
+                    match get_file_name(path){
+                        Ok(file_name)=>{
+                            return Ok(Reader {
+                                data:base64::encode(&buffer),
+                                name:file_name
+                            });
+                        },
+                        Err(_)=>{
+                            return Err("failed-get_file_name");
+                        }
+                    }
+                },
+                Err(e)=>{
+                    return Err("failed-read_file");
+                }
+            }
         },
-        Err(_)=>{
-            return Err(error("failed-send-send_result"));
+        Err(e)=>{
+            return Err("failed-open_file");
         }
     }
 }
@@ -57,7 +71,7 @@ pub fn send_only_bytes(stream:&mut TcpStream,data:Vec<u8>) -> Result<(),String> 
 pub fn send_only(stream:&mut TcpStream,m:String) -> Result<(),String> {
     let mut c = m.clone();
     if c.contains("\r\n") == false {
-        c.push_str(" \r\n");
+        c.push_str("\r\n");
     }
     match stream.write_all(&c.as_bytes()){
         Ok(_)=>{
@@ -72,7 +86,7 @@ pub fn send_only(stream:&mut TcpStream,m:String) -> Result<(),String> {
 pub fn send(stream:&mut TcpStream,m:String) -> Result<READ,String> {
     let mut c = m.clone();
     if c.contains("\r\n") == false {
-        c.push_str(" \r\n");
+        c.push_str("\r\n");
     }
     match stream.write_all(&c.as_bytes()){
         Ok(_)=>{
@@ -91,37 +105,53 @@ pub fn send(stream:&mut TcpStream,m:String) -> Result<READ,String> {
     }
 }
 
-pub fn read(stream:&mut TcpStream) -> Result<READ,String> {
+pub fn read(stream:&mut TcpStream) -> Result<READ,&'static str> {
 
-    let mut line = String::new();
-    let mut buff = [0; 1000];
-    while match stream.read(&mut buff) {
-        Ok(_)=>{
-            match String::from_utf8(buff.to_vec()) {
-                Ok(result)=>{
-                    if result.contains("\r\n") {
-                        line.push_str(&result);
-                        false
-                    } else {
-                        line.push_str(&result);
-                        true
-                    }
-                },
-                Err(_)=>{
-                    return Err(error("failed-parse_byte_array-to_string-read"));
-                }
+
+    let mut collect = Vec::new();
+    let mut buff = [0; 5000];
+
+    loop {
+        match stream.read(&mut buff) {
+            Ok(len)=>{
+                for i in 0..len{collect.push(buff[i].clone());}
+                if len < 5000 {break;}
+            },
+            Err(_)=>{
+                return Err("failed read 10 bytes");
             }
+        }
+    }
+
+    let line:String;
+    match String::from_utf8(collect) {
+        Ok(result)=>{
+            line = result;
         },
         Err(_)=>{
-            return Err(error("failed read 10 bytes"));
+            return Err("failed-parse_byte_array-to_string-read");
         }
-    } {}
+    }
+
+    // println!("\n\n{:?}\n\n",line);
+
+    let mut line_vec: Vec<&str> = line.split("\r\n").collect::<Vec<&str>>();
+    match parse(&mut line_vec[0].to_string()){
+        Ok(p)=>{
+            return Ok(p);
+        },
+        Err(_)=>{
+            return Err("failed-parse_response");
+        }
+    }
 
 
+}
 
-    let line_vec: Vec<&str> = line.split("\r\n").collect::<Vec<&str>>();
+fn parse(letter:&mut String) -> Result<READ,&'static str>{
 
-    let mut letter = line_vec[0].to_string();
+    // println!("{:?}",letter);
+
     let mut parsed = READ {
         result:true,
         code:100,
@@ -134,8 +164,8 @@ pub fn read(stream:&mut TcpStream) -> Result<READ,String> {
             parsed.code = r;
         },
         Err(_)=>{
-            println!("response : {:?}",letter);
-            return Err(error("failed-parse_code"));
+            // println!("response : {:?}",letter);
+            return Err("failed-parse_code");
         }
     }
 

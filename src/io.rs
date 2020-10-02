@@ -57,12 +57,12 @@ pub fn read_file(path:String) -> Result<Reader,&'static str>{
                         }
                     }
                 },
-                Err(e)=>{
+                Err(_)=>{
                     return Err("failed-read_file");
                 }
             }
         },
-        Err(e)=>{
+        Err(_)=>{
             return Err("failed-open_file");
         }
     }

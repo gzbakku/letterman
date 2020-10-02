@@ -53,10 +53,7 @@ pub fn init(email:Email) -> Result<Vec<Action>,&'static str>{
             }
         }
         actions.push(Action { io:"write", cate:"data", tag:"dh-empty", cmd:format!("") });
-
     }
-
-
 
     actions.push(Action { io:"write", cate:"cmd", tag:"data-finish", cmd:"\r\n.\r\n".to_string() });
     actions.push(Action { io:"write", cate:"cmd", tag:"quit", cmd:"QUIT".to_string() });

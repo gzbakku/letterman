@@ -30,7 +30,7 @@ pub fn send_mail(email:Email) -> Result<(),&'static str> {
         if action.io == "read" {
             match io::read(&mut stream){
                 Ok(r)=>{
-                    // println!("read action : {:?}, result : {:?}",action.tag,r);
+                    println!("read action : {:?}, result : {:?}",action.tag,r);
                     if r.result == false {
                         println!("action : {:?}",action);
                         return Err("failed-execute");
@@ -55,7 +55,7 @@ pub fn send_mail(email:Email) -> Result<(),&'static str> {
             } else {
                 match io::send(&mut stream,action.cmd.to_string()){
                     Ok(r)=>{
-                        // println!("write action : {:?}, result : {:?}",action.tag,r);
+                        println!("write action : {:?}, result : {:?}",action.tag,r);
                         if r.result == false {
                             println!("action : {:?}",action);
                             return Err("failed-write-cmd-result");

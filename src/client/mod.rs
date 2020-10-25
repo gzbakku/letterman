@@ -1,6 +1,7 @@
 mod build;
 mod execute;
 mod parse;
+mod resolve;
 pub use build::Email;
 
 #[derive(Debug,Clone)]

@@ -3,7 +3,7 @@ use std::net::{TcpStream};
 use std::fs::File;
 use crate::common::{error};
 use base64;
-use native_tls::TlsStream;
+use rustls::{ClientSession};
 
 pub fn get_file_name(path:String) -> Result<String,&'static str>{
 
@@ -107,8 +107,10 @@ pub fn read(stream:&mut TcpStream) -> Result<READ,&'static str> {
     loop {
         match stream.read(&mut buff) {
             Ok(len)=>{
+                println!("len : {:?}",len);
                 for i in 0..len{collect.push(buff[i].clone());}
                 if len < 5000 {break;}
+                // if len == 0{break;}
             },
             Err(_)=>{
                 return Err("failed read 10 bytes");
@@ -126,7 +128,7 @@ pub fn read(stream:&mut TcpStream) -> Result<READ,&'static str> {
         }
     }
 
-    let line_vec: Vec<&str> = line.split("\r\n").collect::<Vec<&str>>();
+    let mut line_vec: Vec<&str> = line.split("\r\n").collect::<Vec<&str>>();
 
     let mut features = Vec::new();
     if line_vec.len() > 2 {
@@ -155,7 +157,7 @@ pub fn read(stream:&mut TcpStream) -> Result<READ,&'static str> {
 
 }
 
-pub fn secure_send_only(stream:&mut TlsStream<TcpStream>,m:String) -> Result<(),String> {
+pub fn secure_send_only(stream:&mut ClientSession,m:String) -> Result<(),String> {
     let mut c = m.clone();
     if c.contains("\r\n") == false {
         c.push_str("\r\n");
@@ -170,7 +172,7 @@ pub fn secure_send_only(stream:&mut TlsStream<TcpStream>,m:String) -> Result<(),
     }
 }
 
-pub fn secure_send(stream:&mut TlsStream<TcpStream>,m:String) -> Result<READ,String> {
+pub fn secure_send(stream:&mut ClientSession,m:String) -> Result<READ,String> {
     let mut c = m.clone();
     if c.contains("\r\n") == false {
         c.push_str("\r\n");
@@ -192,7 +194,7 @@ pub fn secure_send(stream:&mut TlsStream<TcpStream>,m:String) -> Result<READ,Str
     }
 }
 
-pub fn secure_read(stream:&mut TlsStream<TcpStream>) -> Result<READ,&'static str> {
+pub fn secure_read(stream:&mut ClientSession) -> Result<READ,&'static str> {
 
 
     let mut collect = Vec::new();
@@ -222,7 +224,7 @@ pub fn secure_read(stream:&mut TlsStream<TcpStream>) -> Result<READ,&'static str
 
     // println!("\n{:?}\n",line);
 
-    let line_vec: Vec<&str> = line.split("\r\n").collect::<Vec<&str>>();
+    let mut line_vec: Vec<&str> = line.split("\r\n").collect::<Vec<&str>>();
 
     let mut features = Vec::new();
     if line_vec.len() > 2 {
@@ -301,7 +303,7 @@ fn parse_feature(letter:&mut String) -> Result<Feature,&'static str>{
 }
 
 fn parse(letter:&mut String,features:Vec<Feature>) -> Result<READ,&'static str>{
-    // println!(">>>>>>>>>>>>>>> {:?}",letter);
+    println!(">>>>>>>>>>>>>>> {:?}",letter);
     if letter.len() <= 4 {
         return Err("empty message");
     }

@@ -67,8 +67,8 @@ impl Email{
             Ok(_)=>{
                 return Ok(());
             },
-            Err(_)=>{
-                return Err("failed-send_mail");
+            Err(e)=>{
+                return Err(e);
             }
         }
     }

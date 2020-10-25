@@ -5,9 +5,18 @@ pub fn init(email:Email) -> Result<Vec<Action>,&'static str>{
 
     let mut actions = vec!();
 
+    if !email.from.contains("@") {return Err("invalid_from_email");}
+    let mut domain:String = email.from.split("@").collect::<Vec<&str>>()[1].to_string();
+    if domain.contains("localhost"){domain = String::from("localhost");} else{
+        if !domain.contains("."){return Err("invalid-from-domain");}
+    }
+
     //connection
     actions.push(Action { io:"read", cate:"cmd", tag:"connect", cmd:"".to_string() });
-    actions.push(Action { io:"write", cate:"cmd", tag:"say_hello", cmd:"EHLO localhost".to_string() });
+    actions.push(Action { io:"write", cate:"cmd", tag:"say_hello", cmd:format!("EHLO {}",domain) });
+
+    // return Ok(actions);
+
     actions.push(Action { io:"write", cate:"cmd", tag:"from", cmd:format!("MAIL FROM:<{}>",email.from) });
     actions.push(Action { io:"write", cate:"cmd", tag:"to", cmd:format!("RCPT TO:<{}>",email.to) });
 

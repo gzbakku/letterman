@@ -1,0 +1,12 @@
+[package]
+name = "tlstest"
+version = "0.1.0"
+authors = ["gzbakku <gzbakku@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rustls = "0.18.1"
+webpki = "0.21.3"
+native-tls = "0.2.4"

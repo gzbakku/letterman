@@ -1,4 +1,4 @@
-/target
+**/target
 **/*.rs.bk
 /smtp4dev
 /mail

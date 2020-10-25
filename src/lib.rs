@@ -1,3 +1,3 @@
 mod common;
 mod io;
-mod client;
+pub mod client;

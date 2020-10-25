@@ -1,4 +1,5 @@
 use crate::client::{Action,Email};
+use crate::client::build::BaseFile;
 use crate::io::read_file;
 
 pub fn init(email:Email) -> Result<Vec<Action>,&'static str>{
@@ -20,7 +21,7 @@ pub fn init(email:Email) -> Result<Vec<Action>,&'static str>{
     actions.push(Action { io:"write", cate:"cmd", tag:"from", cmd:format!("MAIL FROM:<{}>",email.from) });
     actions.push(Action { io:"write", cate:"cmd", tag:"to", cmd:format!("RCPT TO:<{}>",email.to) });
 
-    if email.attach.len() > 0{
+    if email.attach.len() > 0 || email.attach_base64.len() > 0{
         for i in get_dynamic_header(email.name,email.from,email.to,email.subject,email.cc){
             actions.push(i);
         }
@@ -46,6 +47,11 @@ pub fn init(email:Email) -> Result<Vec<Action>,&'static str>{
                 }
             }
         }
+        for i in email.attach_base64.iter(){
+            for j in get_base_64_body(&i).iter(){
+                actions.push(j.clone());
+            }
+        }
         actions.push(Action { io:"write", cate:"data", tag:"end_body", cmd:format!("--e6279a8adea1bd6ce96812378072940a--") });
     } else {
 
@@ -69,6 +75,17 @@ pub fn init(email:Email) -> Result<Vec<Action>,&'static str>{
 
     return Ok(actions);
 
+}
+
+fn get_base_64_body(base:&BaseFile) -> Vec<Action>{
+    let mut actions = vec!();
+    actions.push(Action { io:"write", cate:"data", tag:"fb-starter", cmd:format!("--e6279a8adea1bd6ce96812378072940a") });
+    actions.push(Action { io:"write", cate:"data", tag:"fb-content_type", cmd:format!("Content-Type: application/octet-stream; name=\"{}\"",base.name.to_string()) });
+    actions.push(Action { io:"write", cate:"data", tag:"fb-encoding", cmd:format!("Content-Transfer-Encoding: base64") });
+    actions.push(Action { io:"write", cate:"data", tag:"fb-declare", cmd:format!("Content-Disposition: attachment") });
+    actions.push(Action { io:"write", cate:"data", tag:"dh-spacer", cmd:format!("") });
+    actions.push(Action { io:"write", cate:"data", tag:"fb-data", cmd:base.base64.to_string() });
+    return actions;
 }
 
 fn get_file_body(path:String) -> Result<Vec<Action>,&'static str>{

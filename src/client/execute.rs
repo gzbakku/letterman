@@ -18,7 +18,7 @@ pub fn send_mail(email:Email) -> Result<(),&'static str> {
     if email.to.contains("localhost"){
         let to_mail = email.to.clone();
         let email_split = to_mail.split("@").collect::<Vec<&str>>();
-        match try_port(email_split[1].to_string(),&actions){
+        match try_port(email_split[1].to_string(),&actions,true){
             Ok(_)=>{return Ok(())},
             Err(_)=>{return Err("failed-send_to_locahost");}
         }
@@ -43,13 +43,13 @@ pub fn send_mail(email:Email) -> Result<(),&'static str> {
             }
         }
     } else {
-        for runner in holders.pool.iter(){
-            let mut addr = runner.exchange().to_utf8();
-            if addr.as_bytes()[addr.len()-1] == ".".as_bytes()[0]{
-                // addr.split_off(&addr.len()-1);
-                addr.truncate(&addr.len()-1);   //changed from splitoff to truncate
-            }
-            match try_address(addr,&actions){
+        for addr in holders.pool.iter(){
+            // let mut addr = runner.exchange().to_utf8();
+            // if addr.as_bytes()[addr.len()-1] == ".".as_bytes()[0]{
+            //     // addr.split_off(&addr.len()-1);
+            //     addr.truncate(&addr.len()-1);   //changed from splitoff to truncate
+            // }
+            match try_address(addr.to_string(),&actions){
                 Ok(_)=>{return Ok(());},
                 Err(e)=>{
                     if e== "dont_continue"{
@@ -68,20 +68,33 @@ fn try_address(addr:String,actions:&Vec<Action>) -> Result<(),&'static str>{
     // let ports = ["25","465","587","2525"];
     let ports = ["25"];
     for port in ports.iter(){
-        match try_port(format!("{}:{}",addr,port),&actions){
+        match try_port(format!("{}:{}",addr,port),&actions,false){
             Ok(_)=>{
                 return Ok(());
             },
             Err(e)=>{
+                // println!("{:?}",e);
                 // println!("!!! email denied by the service");
                 if e == "dont_continue"{return Err("dont_continue")}
+                if e == "tls_failed"{
+                    match try_port(format!("{}:{}",addr,port),&actions,true){
+                        Ok(_)=>{
+                            return Ok(());
+                        },
+                        Err(_)=>{
+                            return Err("no_tls_failed");
+                        }
+                    }
+                }
             }
         }
     }
     return Err("failed-un_reacheble-on_ports");
 }
 
-fn try_port(addr:String,actions:&Vec<Action>) -> Result<(),&'static str>{
+fn try_port(addr:String,actions:&Vec<Action>,no_tls:bool) -> Result<(),&'static str>{
+
+    // println!("==============) {:?}",no_tls);
 
     let mut stream;
     match TcpStream::connect(addr.clone()) {
@@ -143,7 +156,7 @@ fn try_port(addr:String,actions:&Vec<Action>) -> Result<(),&'static str>{
                                 for feature in r.features{
                                     if feature._type == "STARTTLS"{can_tls = true;}
                                 }
-                                if can_tls{
+                                if can_tls && !no_tls{
                                     match io::send(&mut stream,"STARTTLS".to_string()){
                                         Ok(r)=>{
                                             // println!("============ {:?}",r);
@@ -157,7 +170,7 @@ fn try_port(addr:String,actions:&Vec<Action>) -> Result<(),&'static str>{
                                                             return Err("dont_continue");
                                                         }
                                                         println!("failed-start_tls : {:?}",e);
-                                                        return Err("failed-starttls");
+                                                        return Err("tls_failed");
                                                     }
                                                 }
                                             }

@@ -4,7 +4,7 @@ use trust_dns_resolver::proto::rr::rdata::mx::MX;
 
 pub struct RESV{
     pub base:String,
-    pub pool:Vec<MX>
+    pub pool:Vec<String>
 }
 
 pub fn init(email:String) -> Result<RESV,&'static str>{
@@ -27,9 +27,9 @@ pub fn init(email:String) -> Result<RESV,&'static str>{
         }
     }
 
+    let mut pool:Vec<MX> = Vec::new();
     match resolver.mx_lookup(domain){
         Ok(lookup)=>{
-            let mut pool:Vec<MX> = Vec::new();
             for a in lookup.iter(){
                 if pool.len() == 0 {pool.push(a.clone());} else{
                     if a.preference() > pool[pool.len() - 1].preference(){
@@ -47,12 +47,26 @@ pub fn init(email:String) -> Result<RESV,&'static str>{
                     }
                 }
             }
-            return Ok(RESV {base:"".to_string(),pool:pool});
         },
         Err(e)=>{
             println!("!!! failed-lookup-mx_records : {:?}",e);
-            return Err("lookup_failed");
+            return Ok(RESV {base:"".to_string(),pool:vec![domain.to_string()]});
         }
     }
 
+    let mut clean:Vec<String> = Vec::new();
+    for i in pool{
+        clean.push(parse_domain(&i));
+    }
+
+    return Ok(RESV {base:"".to_string(),pool:clean});
+
+}
+
+fn parse_domain(m:&MX) -> String{
+    let mut addr = m.exchange().to_utf8();
+    if addr.as_bytes()[addr.len()-1] == ".".as_bytes()[0]{
+        addr.truncate(&addr.len()-1);   //changed from splitoff to truncate
+    }
+    return addr.to_string();
 }

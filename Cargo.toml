@@ -1,6 +1,6 @@
 [package]
 name = "letterman"
-version = "0.0.5"
+version = "0.0.6"
 authors = ["gzbakku <gzbakku@gmail.com>"]
 edition = "2018"
 

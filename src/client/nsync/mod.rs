@@ -3,7 +3,6 @@ mod execute;
 mod parse;
 mod resolve;
 pub use build::Email;
-pub mod nsync;
 
 #[derive(Debug,Clone)]
 pub struct Action {

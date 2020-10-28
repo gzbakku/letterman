@@ -5,7 +5,6 @@ mod client;
 use tokio;
 
 fn main(){
-    // main_async();
     start_sync();
     if false {
         main_async();
@@ -72,7 +71,6 @@ fn build_mail() -> client::Email{
     }
 
     if 1 == 0 {
-        email.attach("d://workstation/expo/rust/letterman/drink.png".to_string());
         email.attach("d://workstation/expo/rust/letterman/drink.png".to_string());
     }
 

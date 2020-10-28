@@ -1,6 +1,6 @@
 [package]
 name = "letterman"
-version = "0.0.6"
+version = "0.0.7"
 authors = ["gzbakku <gzbakku@gmail.com>"]
 edition = "2018"
 
@@ -19,6 +19,9 @@ base64 = "0.11.0"
 trust-dns-resolver = "0.19.5"
 native-tls = "0.2.4"
 tokio = { version = "0.2.22", features = ["full"] }
+openssl = "0.10.30"
+chrono = "0.4.19"
+md5 = "0.7.0"
 
 # [dev-dependencies]
 # tokio = { version = "0.3.1", features = ["full"] }

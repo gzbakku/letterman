@@ -2,14 +2,14 @@ mod common;
 mod io;
 mod client;
 
-use client::nsync::Email;
-// extern crate tokio;
-
 use tokio;
 
 fn main(){
     // main_async();
     start_sync();
+    if false {
+        main_async();
+    }
 }
 
 #[tokio::main]
@@ -18,60 +18,21 @@ async fn main_async(){
 }
 
 async fn start_async() {
-
     println!(">>> sending mail async");
-
-    let mut email = Email::new();
-    email.name(String::from("gzbakku"));
-    email.from(String::from("akku@silvergram.in"));
-    email.to(String::from("lubisak57@onetruemail.info"));
-    // email.to(String::from("gzbakku@gmail.com"));
-    email.subject(String::from("hello world"));
-    email.body(String::from("first message\nsecond message\nthird message"));
-    // email.body(String::from("<html> <header><title>This is title</title></header> <body> Hello world </body> </html>"));
-    // email.attach("d://workstation/expo/rust/letterman/run.bat".to_string());
-    // email.attach("d://workstation/expo/rust/letterman/sample.txt".to_string());
-    // email.attach("d://workstation/expo/rust/letterman/MailHog_windows_386.exe".to_string());
-    // email.is_html();
-
-    email.attach("C:\\Users/tejas/Downloads/drink.png".to_string());
-
-    // let base64_data = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAAdgAAAHYBTnsmCAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAJfSURBVDiNpZLdS1MBGMafc87OPtx23M7Opse2hDb8mB+ZLRC70IhBd4GSJAUVYnXVXyBBEHST1xZRmUgXgdHFiC6KwixCyjLDmTKx4cm17Ux2trntnO3YTYrOFYTP3fvwvj8eeF5gn6L+4pPtza6bvJ3xrcWkd/9NrXXaep49vCKP3Dqbomn68Cl/w52BC8emJsYvdpTuasoB0tl88Gngc0TK5GRFUSrP9fou9fZ5tQ8eTY8COAIg+0+AKKaDYxPTbQAUAAeK+U0SKoGVlXXDH29bxM6Bc/B3K4zWWlUtZIuKnC0UCxsESSotddZBzyEXNbcQTi2GxMfxqHC1XAJSpzd1eVs76g0VZtC0dleqaE4G43CYdcLbbgAkALUUoArhpf4ui+Wj286TyXwOObUIANCTFCp1OoRiEVUIL/VvHW8DWI4fZBh2QJLEF7yd/9njO+7UECTYCiMAILGRQWFTxfinKYHlqk8zjG1EkhL3E/G1exqLveqat7njRo3LY1lbDfli+bQa2chg6ZeA+UQcAIEmloOnqgbRXL66qbVziHe6qdXwYv383Ac9yZisgzUujwUATJUspXewtH94CG5vI2aTEmaTSbibGuEfHoLBztJmhqUAwHmwzsIw7GXN+np89OXzsQaG4VoUOZdWOFtbKjBpO2ricLvLDwBwG21IBSaxHFoWgwnxC63VmyQpPqcUisFdNQLAyfrm133tnd3l/uPJzPs3r75/O7HT2/NIZkpbrCUIGEtqTMt5GAhSLd3fA5gRQmd+1LVcD0uCOyRGrVt+RpGlwMLX8+WS7Uu/AV/Q4yOF5rS7AAAAAElFTkSuQmCC".to_string();
-    // email.attach_base64("drink.png".to_string(),base64_data);
-
-    match email.send().await{
+    let email = build_mail();
+    match email.send_tokio().await{
         Ok(_)=>{
-            println!("email sent");
+            println!("email sent from tokio");
         },
         Err(e)=>{
             println!("email failed : {:?}",e);
         }
     }
-
 }
 
 fn start_sync() {
-
-    println!(">>> sending mail async");
-
-    let mut email = client::Email::new();
-    email.name(String::from("gzbakku"));
-    email.from(String::from("akku@silvergram.in"));
-    email.to(String::from("lubisak57@onetruemail.info"));
-    // email.to(String::from("gzbakku@gmail.com"));
-    email.subject(String::from("hello world"));
-    email.body(String::from("first message\nsecond message\nthird message"));
-    // email.body(String::from("<html> <header><title>This is title</title></header> <body> Hello world </body> </html>"));
-    // email.attach("d://workstation/expo/rust/letterman/run.bat".to_string());
-    // email.attach("d://workstation/expo/rust/letterman/sample.txt".to_string());
-    // email.attach("d://workstation/expo/rust/letterman/MailHog_windows_386.exe".to_string());
-    // email.is_html();
-
-    email.attach("C:\\Users/tejas/Downloads/drink.png".to_string());
-
-    // let base64_data = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAAdgAAAHYBTnsmCAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAJfSURBVDiNpZLdS1MBGMafc87OPtx23M7Opse2hDb8mB+ZLRC70IhBd4GSJAUVYnXVXyBBEHST1xZRmUgXgdHFiC6KwixCyjLDmTKx4cm17Ux2trntnO3YTYrOFYTP3fvwvj8eeF5gn6L+4pPtza6bvJ3xrcWkd/9NrXXaep49vCKP3Dqbomn68Cl/w52BC8emJsYvdpTuasoB0tl88Gngc0TK5GRFUSrP9fou9fZ5tQ8eTY8COAIg+0+AKKaDYxPTbQAUAAeK+U0SKoGVlXXDH29bxM6Bc/B3K4zWWlUtZIuKnC0UCxsESSotddZBzyEXNbcQTi2GxMfxqHC1XAJSpzd1eVs76g0VZtC0dleqaE4G43CYdcLbbgAkALUUoArhpf4ui+Wj286TyXwOObUIANCTFCp1OoRiEVUIL/VvHW8DWI4fZBh2QJLEF7yd/9njO+7UECTYCiMAILGRQWFTxfinKYHlqk8zjG1EkhL3E/G1exqLveqat7njRo3LY1lbDfli+bQa2chg6ZeA+UQcAIEmloOnqgbRXL66qbVziHe6qdXwYv383Ac9yZisgzUujwUATJUspXewtH94CG5vI2aTEmaTSbibGuEfHoLBztJmhqUAwHmwzsIw7GXN+np89OXzsQaG4VoUOZdWOFtbKjBpO2ricLvLDwBwG21IBSaxHFoWgwnxC63VmyQpPqcUisFdNQLAyfrm133tnd3l/uPJzPs3r75/O7HT2/NIZkpbrCUIGEtqTMt5GAhSLd3fA5gRQmd+1LVcD0uCOyRGrVt+RpGlwMLX8+WS7Uu/AV/Q4yOF5rS7AAAAAElFTkSuQmCC".to_string();
-    // email.attach_base64("drink.png".to_string(),base64_data);
-
+    println!(">>> sending mail sync");
+    let email = build_mail();
     match email.send(){
         Ok(_)=>{
             println!("email sent");
@@ -80,5 +41,46 @@ fn start_sync() {
             println!("email failed : {:?}",e);
         }
     }
+}
+
+fn build_mail() -> client::Email{
+
+    let mut email = client::Email::new();
+
+    match client::read_key("d://workstation/expo/rust/letterman/keys/private.key".to_string()){
+        Ok(key)=>{
+            email.private_key(key);
+        },
+        Err(e)=>{
+            println!("!!! {:?}",e);
+        }
+    }
+
+    email.dkim_selector(String::from("dkim"));
+    email.server_name(String::from("mailcenter.herokuapp.com"));
+    email.name(String::from("gzbakku"));
+    email.from(String::from("akku@silvergram.in"));
+    email.to(String::from("akku@localhost:25"));
+    // email.to(String::from("gzbakku@gmail.com"));
+    email.to(String::from("9mvxra2pyfknnz@dkimvalidator.com"));
+    email.subject(String::from("hello world"));
+    email.body(String::from("first message\r\nsecond message\r\nthird message"));
+
+    if 1 == 1 {
+        email.body(String::from("<html> <header><title>This is title</title></header> <body> <h1>Hello world</h1> </body> </html>"));
+        email.is_html();
+    }
+
+    if 1 == 0 {
+        email.attach("d://workstation/expo/rust/letterman/drink.png".to_string());
+        email.attach("d://workstation/expo/rust/letterman/drink.png".to_string());
+    }
+
+    if false {
+        let base64_data = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAAdgAAAHYBTnsmCAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAJfSURBVDiNpZLdS1MBGMafc87OPtx23M7Opse2hDb8mB+ZLRC70IhBd4GSJAUVYnXVXyBBEHST1xZRmUgXgdHFiC6KwixCyjLDmTKx4cm17Ux2trntnO3YTYrOFYTP3fvwvj8eeF5gn6L+4pPtza6bvJ3xrcWkd/9NrXXaep49vCKP3Dqbomn68Cl/w52BC8emJsYvdpTuasoB0tl88Gngc0TK5GRFUSrP9fou9fZ5tQ8eTY8COAIg+0+AKKaDYxPTbQAUAAeK+U0SKoGVlXXDH29bxM6Bc/B3K4zWWlUtZIuKnC0UCxsESSotddZBzyEXNbcQTi2GxMfxqHC1XAJSpzd1eVs76g0VZtC0dleqaE4G43CYdcLbbgAkALUUoArhpf4ui+Wj286TyXwOObUIANCTFCp1OoRiEVUIL/VvHW8DWI4fZBh2QJLEF7yd/9njO+7UECTYCiMAILGRQWFTxfinKYHlqk8zjG1EkhL3E/G1exqLveqat7njRo3LY1lbDfli+bQa2chg6ZeA+UQcAIEmloOnqgbRXL66qbVziHe6qdXwYv383Ac9yZisgzUujwUATJUspXewtH94CG5vI2aTEmaTSbibGuEfHoLBztJmhqUAwHmwzsIw7GXN+np89OXzsQaG4VoUOZdWOFtbKjBpO2ricLvLDwBwG21IBSaxHFoWgwnxC63VmyQpPqcUisFdNQLAyfrm133tnd3l/uPJzPs3r75/O7HT2/NIZkpbrCUIGEtqTMt5GAhSLd3fA5gRQmd+1LVcD0uCOyRGrVt+RpGlwMLX8+WS7Uu/AV/Q4yOF5rS7AAAAAElFTkSuQmCC".to_string();
+        email.attach_base64("drink.png".to_string(),base64_data);
+    }
+
+    return email;
 
 }

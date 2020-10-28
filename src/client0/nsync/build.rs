@@ -1,7 +1,8 @@
-use crate::client::execute::send_mail;
+use crate::client::nsync::execute::send_mail;
 
 #[derive(Debug,Clone)]
 pub struct Email {
+    pub server_name:String,
     pub name:String,
     pub from:String,
     pub to:String,
@@ -26,6 +27,7 @@ impl Email{
     #[allow(dead_code)]
     pub fn new() -> Email{
         Email{
+            server_name:String::new(),
             name:String::new(),
             from:String::new(),
             to:String::new(),
@@ -37,7 +39,10 @@ impl Email{
             attach_base64:Vec::new(),
             is_html:false
         }
-    }#[allow(dead_code)]
+    }
+    #[allow(dead_code)]
+    pub fn server_name(&mut self,v:String){self.server_name = v;}
+    #[allow(dead_code)]
     pub fn name(&mut self,v:String){self.name = v;}
     #[allow(dead_code)]
     pub fn to(&mut self,v:String){self.to = v;}
@@ -77,8 +82,8 @@ impl Email{
     #[allow(dead_code)]
     pub fn get(self) -> Email{return self;}
     #[allow(dead_code)]
-    pub fn send(self) -> Result<(),&'static str>{
-        match send_mail(self){
+    pub async fn send(self) -> Result<(),&'static str>{
+        match send_mail(self).await{
             Ok(_)=>{
                 return Ok(());
             },

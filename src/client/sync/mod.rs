@@ -1,7 +1,8 @@
 use crate::io;
-use crate::client::{Action,Email,parse,resolve};
+use crate::client::{Action,Email,parse};
 use std::net::TcpStream;
 use native_tls::{TlsStream,TlsConnector};
+mod resolve;
 
 pub fn send_mail(email:Email) -> Result<(),&'static str> {
 
@@ -10,7 +11,8 @@ pub fn send_mail(email:Email) -> Result<(),&'static str> {
         Ok(a)=>{
             actions = a;
         },
-        Err(_)=>{
+        Err(e)=>{
+            println!("!!! {:?}",e);
             return Err("failed-parse_mail");
         }
     }

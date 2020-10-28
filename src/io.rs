@@ -61,10 +61,50 @@ pub fn read_file(path:String) -> Result<Reader,&'static str>{
     }
 }
 
+pub fn read_as_text(path:String) -> Result<String,&'static str>{
+    match read_file_raw(path){
+        Ok(buffer)=>{
+            match String::from_utf8(buffer){
+                Ok(d)=>{return Ok(d);},
+                Err(_)=>{return Err("failed-parse_buffer_to_text")}
+            }
+        },
+        Err(e)=>{
+            println!("!!! {:?}",e);
+            return Err("failed-read_raw_file");
+        }
+    }
+}
+
+pub fn read_file_raw(path:String) -> Result<Vec<u8>,&'static str>{
+    match File::open(path) {
+        Ok(mut reader)=>{
+            let mut buffer = Vec::new();
+            match reader.read_to_end(&mut buffer) {
+                Ok(_)=>{
+                    return Ok(buffer);
+                },
+                Err(_)=>{
+                    return Err("failed-read_file");
+                }
+            }
+        },
+        Err(e)=>{
+            println!("!!! {:?}",e);
+            return Err("failed-open_file");
+        }
+    }
+}
+
 pub fn send_only(stream:&mut TcpStream,m:String) -> Result<(),String> {
     let mut c = m.clone();
     if c.contains("\r\n") == false {
         c.push_str("\r\n");
+    } else {
+        let hold = c.split("\r\n").collect::<Vec<&str>>();
+        if hold[hold.len() - 1].len() > 0{
+            c.push_str("\r\n");
+        }
     }
     match stream.write_all(&c.as_bytes()){
         Ok(_)=>{
@@ -159,6 +199,11 @@ pub fn secure_send_only(stream:&mut TlsStream<TcpStream>,m:String) -> Result<(),
     let mut c = m.clone();
     if c.contains("\r\n") == false {
         c.push_str("\r\n");
+    } else {
+        let hold = c.split("\r\n").collect::<Vec<&str>>();
+        if hold[hold.len() - 1].len() > 0{
+            c.push_str("\r\n");
+        }
     }
     match stream.write_all(&c.as_bytes()){
         Ok(_)=>{

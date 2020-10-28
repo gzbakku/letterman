@@ -1,7 +1,11 @@
-use crate::client::nsync::execute::send_mail;
+use crate::client::execute::send_mail;
+use chrono::Utc;
 
 #[derive(Debug,Clone)]
 pub struct Email {
+    pub dkim_selector:String,
+    pub private_key:String,
+    pub server_name:String,
     pub name:String,
     pub from:String,
     pub to:String,
@@ -11,7 +15,8 @@ pub struct Email {
     pub body:String,
     pub attach:Vec<String>,
     pub attach_base64:Vec<BaseFile>,
-    pub is_html:bool
+    pub is_html:bool,
+    pub date:String
 }
 
 #[derive(Debug,Clone)]
@@ -26,6 +31,9 @@ impl Email{
     #[allow(dead_code)]
     pub fn new() -> Email{
         Email{
+            dkim_selector:String::from("dkim"),
+            private_key:String::new(),
+            server_name:String::new(),
             name:String::new(),
             from:String::new(),
             to:String::new(),
@@ -35,9 +43,17 @@ impl Email{
             body:String::new(),
             attach:Vec::new(),
             attach_base64:Vec::new(),
-            is_html:false
+            is_html:false,
+            date:Utc::now().to_rfc2822()
         }
-    }#[allow(dead_code)]
+    }
+    #[allow(dead_code)]
+    pub fn dkim_selector(&mut self,v:String){self.dkim_selector = v;}
+    #[allow(dead_code)]
+    pub fn private_key(&mut self,v:String){self.private_key = v;}
+    #[allow(dead_code)]
+    pub fn server_name(&mut self,v:String){self.server_name = v;}
+    #[allow(dead_code)]
     pub fn name(&mut self,v:String){self.name = v;}
     #[allow(dead_code)]
     pub fn to(&mut self,v:String){self.to = v;}
@@ -77,8 +93,8 @@ impl Email{
     #[allow(dead_code)]
     pub fn get(self) -> Email{return self;}
     #[allow(dead_code)]
-    pub async fn send(self) -> Result<(),&'static str>{
-        match send_mail(self).await{
+    pub fn send(self) -> Result<(),&'static str>{
+        match send_mail(self){
             Ok(_)=>{
                 return Ok(());
             },

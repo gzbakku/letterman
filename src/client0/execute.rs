@@ -1,18 +1,17 @@
 use crate::io;
-use crate::client::{Action,Email,parse};
+use crate::client::{Action,Email,parse,resolve};
 use std::net::TcpStream;
 use native_tls::{TlsStream,TlsConnector};
 
-mod resolve;
-
-pub async fn send_mail(email:Email) -> Result<(),&'static str> {
+pub fn send_mail(email:Email) -> Result<(),&'static str> {
 
     let actions:Vec<Action>;
     match parse::init(email.clone()){
         Ok(a)=>{
             actions = a;
         },
-        Err(_)=>{
+        Err(e)=>{
+            println!("!!! {:?}",e);
             return Err("failed-parse_mail");
         }
     }
@@ -27,7 +26,7 @@ pub async fn send_mail(email:Email) -> Result<(),&'static str> {
     }
 
     let holders:resolve::RESV;
-    match resolve::init(email.to.clone()).await{
+    match resolve::init(email.to.clone()){
         Ok(h)=>{
             holders = h;
         },
@@ -46,6 +45,11 @@ pub async fn send_mail(email:Email) -> Result<(),&'static str> {
         }
     } else {
         for addr in holders.pool.iter(){
+            // let mut addr = runner.exchange().to_utf8();
+            // if addr.as_bytes()[addr.len()-1] == ".".as_bytes()[0]{
+            //     // addr.split_off(&addr.len()-1);
+            //     addr.truncate(&addr.len()-1);   //changed from splitoff to truncate
+            // }
             match try_address(addr.to_string(),&actions){
                 Ok(_)=>{return Ok(());},
                 Err(e)=>{
@@ -70,6 +74,7 @@ fn try_address(addr:String,actions:&Vec<Action>) -> Result<(),&'static str>{
                 return Ok(());
             },
             Err(e)=>{
+                // println!("{:?}",e);
                 // println!("!!! email denied by the service");
                 if e == "dont_continue"{return Err("dont_continue")}
                 if e == "tls_failed"{
@@ -89,6 +94,8 @@ fn try_address(addr:String,actions:&Vec<Action>) -> Result<(),&'static str>{
 }
 
 fn try_port(addr:String,actions:&Vec<Action>,no_tls:bool) -> Result<(),&'static str>{
+
+    // println!("==============) {:?}",no_tls);
 
     let mut stream;
     match TcpStream::connect(addr.clone()) {

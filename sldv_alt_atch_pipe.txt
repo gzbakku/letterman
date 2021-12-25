@@ -1,0 +1,32 @@
+From:gzbakku <akku@silvergram.in>
+Message-ID: <I2cpH7ncm99x4nRuuRUoungu8d7gveoC.mailcenter.herokuapp.com@localhost>
+Date: Mon, 20 Dec 2021 11:15:39 +0000
+Subject: hello world
+To: gzbakku@localhost
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=silvergram.in; s=dkim; h=from:message-id:date:subject:to; bh=IO2IRVijgi0jJkjjCP28hLJNsi6+ctPvOT4eQg+j6FE=; b=CN1FxlpCqSVK0tYPhdGIsFtuAG4zVC+zef8f+8mOO1vJmUDdw9p9lz/jL3COczgeGh1aBpkTLHLzvr1BkRR/XlwHcz4wcqxZyp2J1iMVBnMjOQoF6kBkR/t82pD+T5G6iQJmcX0mGsKi0sYE76XvEWGSUvOQfSPLckdzPKNxsyY+wiASZd7EvSucFdCuC4NYZsIDFBjDnjFQVlNst/Dxs7y/VYvPWm5Y9tNbQX1PIHRBiANE1fKVibYbnXTNcH69PcBRh9+XQeJLDf/hZuthyX8xUCWmo/E/32IOWVL4sLZer4j22E2kFGztaa/9zhdxzE4l3UX7Kf7nWbIFNZhpkQ==
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="000000000000dbc95d05d2847226"
+
+--000000000000dbc95d05d2847226
+Content-Type: multipart/alternative; boundary="000000000000dbc95d05d2847225"
+
+--000000000000dbc95d05d2847225
+Content-Type: text/plain; charset="UTF-8"
+
+first message
+second message
+third message
+--000000000000dbc95d05d2847225
+Content-Type: text/html; charset="UTF-8"
+
+<html> <header><title>This is title</title></header> <body> <h1>Hello world</h1> </body> </html>
+--000000000000dbc95d05d2847225--
+--000000000000dbc95d05d2847226
+Content-Type: image/png; charset="UTF-8"; name="drink.png"
+Content-Disposition: attachment; filename="drink.png"
+Content-Transfer-Encoding: base64
+
+iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAAdgAAAHYBTnsmCAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAJfSURBVDiNpZLdS1MBGMafc87OPtx23M7Opse2hDb8mB+ZLRC70IhBd4GSJAUVYnXVXyBBEHST1xZRmUgXgdHFiC6KwixCyjLDmTKx4cm17Ux2trntnO3YTYrOFYTP3fvwvj8eeF5gn6L+4pPtza6bvJ3xrcWkd/9NrXXaep49vCKP3Dqbomn68Cl/w52BC8emJsYvdpTuasoB0tl88Gngc0TK5GRFUSrP9fou9fZ5tQ8eTY8COAIg+0+AKKaDYxPTbQAUAAeK+U0SKoGVlXXDH29bxM6Bc/B3K4zWWlUtZIuKnC0UCxsESSotddZBzyEXNbcQTi2GxMfxqHC1XAJSpzd1eVs76g0VZtC0dleqaE4G43CYdcLbbgAkALUUoArhpf4ui+Wj286TyXwOObUIANCTFCp1OoRiEVUIL/VvHW8DWI4fZBh2QJLEF7yd/9njO+7UECTYCiMAILGRQWFTxfinKYHlqk8zjG1EkhL3E/G1exqLveqat7njRo3LY1lbDfli+bQa2chg6ZeA+UQcAIEmloOnqgbRXL66qbVziHe6qdXwYv383Ac9yZisgzUujwUATJUspXewtH94CG5vI2aTEmaTSbibGuEfHoLBztJmhqUAwHmwzsIw7GXN+np89OXzsQaG4VoUOZdWOFtbKjBpO2ricLvLDwBwG21IBSaxHFoWgwnxC63VmyQpPqcUisFdNQLAyfrm133tnd3l/uPJzPs3r75/O7HT2/NIZkpbrCUIGEtqTMt5GAhSLd3fA5gRQmd+1LVcD0uCOyRGrVt+RpGlwMLX8+WS7Uu/AV/Q4yOF5rS7AAAAAElFTkSuQmCC
+--000000000000dbc95d05d2847226--
+
+.

@@ -1,7 +1,7 @@
 **/target
 **/*.rs.bk
 **/node_modules
-**/keys/
+**/keys
 /smtp4dev
 /mail
 MailHog_windows_386.exe

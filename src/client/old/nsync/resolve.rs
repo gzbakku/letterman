@@ -1,4 +1,4 @@
-use trust_dns_resolver::AsyncResolver;
+use trust_dns_resolver::{TokioAsyncResolver};
 use trust_dns_resolver::config::{ResolverConfig,ResolverOpts};
 use trust_dns_resolver::proto::rr::rdata::mx::MX;
 
@@ -19,11 +19,12 @@ pub async fn init(email:String) -> Result<RESV,&'static str>{
     if !domain.contains("."){return Err("invalid_domain");}
 
     let mut pool:Vec<MX> = Vec::new();
-    match AsyncResolver::tokio(ResolverConfig::default(), ResolverOpts::default()).await{
+    match TokioAsyncResolver::tokio(ResolverConfig::default(), ResolverOpts::default()){
         Ok(resolver)=>{
             match resolver.mx_lookup(domain).await{
                 Ok(lookup)=>{
                     for a in lookup.iter(){
+                        // println!("{:#?}",a);
                         if pool.len() == 0 {pool.push(a.clone());} else{
                             if a.preference() > pool[pool.len() - 1].preference(){
                                 pool.push(a.clone());
@@ -56,6 +57,8 @@ pub async fn init(email:String) -> Result<RESV,&'static str>{
     for i in pool{
         clean.push(parse_domain(&i));
     }
+
+    // println!("{:#?}",clean);
 
     return Ok(RESV {base:"".to_string(),pool:clean});
 

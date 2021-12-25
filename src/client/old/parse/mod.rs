@@ -1,5 +1,4 @@
-use crate::client::{Action,Email};
-use crate::client::build::BaseFile;
+use crate::client_old::{Action,Email,BaseFile};
 use crate::io::read_file;
 use crate::common::hash;
 
@@ -8,6 +7,7 @@ mod dkim;
 pub fn init(email:Email) -> Result<Vec<Action>,&'static str>{
 
     let mut actions = vec!();
+    let mut body = vec!();
 
     //------------------------
     //static items
@@ -22,7 +22,11 @@ pub fn init(email:Email) -> Result<Vec<Action>,&'static str>{
     } else {
         server_name = domain.clone();
     }
-    let message_id = hash(format!("{}:{}:{}:{}:{}:{}",server_name,email.to,email.from,email.date,email.subject,email.body));
+    let message_id = format!(
+        "<{}@{}>",
+        hash(format!("{}:{}:{}:{}:{}:{}",server_name,email.to,email.from,email.date,email.subject,email.body)),
+        domain,
+    );
 
     //------------------------
     //email headers
@@ -40,6 +44,8 @@ pub fn init(email:Email) -> Result<Vec<Action>,&'static str>{
         make_dkim = false;
     }
 
+    println!("make_dkim : {:?}",make_dkim);
+
     //------------------------
     //is dynamic
     let is_dynamic;
@@ -55,9 +61,10 @@ pub fn init(email:Email) -> Result<Vec<Action>,&'static str>{
         actions.push(i);
     }
     for i in get_text_body(email.body.clone(),is_dynamic,email.is_html){
-        actions.push(i);
+        actions.push(i.clone());
+        body.push(i);
     }
-    actions.push(Action { io:"write", cate:"data", tag:"dh-empty", cmd:format!("") });
+    // actions.push(Action { io:"write", cate:"data", tag:"dh-empty", cmd:format!("") });
 
     //------------------------
     //dynamic body
@@ -68,6 +75,7 @@ pub fn init(email:Email) -> Result<Vec<Action>,&'static str>{
                 Ok(pool)=>{
                     for j in pool.iter(){
                         actions.push(j.clone());
+                        body.push(j.clone());
                     }
                 },
                 Err(_)=>{
@@ -78,15 +86,36 @@ pub fn init(email:Email) -> Result<Vec<Action>,&'static str>{
         for i in email.attach_base64.iter(){
             for j in get_base_64_body(&i).iter(){
                 actions.push(j.clone());
+                body.push(j.clone());
             }
         }
         actions.push(Action { io:"write", cate:"data", tag:"end_body", cmd:format!("--e6279a8adea1bd6ce96812378072940a--") });
+        body.push(Action { io:"write", cate:"data", tag:"end_body", cmd:format!("--e6279a8adea1bd6ce96812378072940a--") });
     }
 
     if make_dkim{
-        match dkim::init(&email,domain.clone(),message_id.clone()){
-            Ok(_)=>{},
-            Err(_)=>{}
+        match dkim::init(&email,domain.clone(),message_id.clone(),body){
+            Ok(header_val)=>{
+                let mut dkim_index = 0;
+                let mut dkim_found = false;
+                for a in &actions{
+                    if a.tag == "dh-dkim"{
+                        dkim_found = true;
+                        break;
+                    }
+                    dkim_index += 1;
+                }
+                if dkim_found{
+                    actions[dkim_index].cmd = format!("DKIM-Signature: {}",header_val);
+                } else {
+                    println!("!!! failed-set-dkim_header");
+                    return Err("failed-edit-dkim_header");
+                }
+            },
+            Err(e)=>{
+                println!("!!! failed-generate_dkim_header => {:?}",e);
+                return Err("failed-generate_dkim_header");
+            }
         }
     }
 
@@ -128,7 +157,6 @@ fn get_file_body(path:String) -> Result<Vec<Action>,&'static str>{
 }
 
 fn get_text_body(message:String,multipart:bool,is_html:bool) -> Vec<Action>{
-    println!("multipart : {:?} is_html : {:?}",multipart,is_html);
     let mut actions = vec!();
     if multipart{
         actions.push(Action { io:"write", cate:"data", tag:"tb-starter", cmd:format!("--e6279a8adea1bd6ce96812378072940a") });

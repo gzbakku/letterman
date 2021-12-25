@@ -1,4 +1,4 @@
-use crate::client::{Email,Action};
+use crate::client_old::{Email,Action};
 use openssl::sha::Sha256;
 use base64;
 
@@ -39,7 +39,7 @@ pub fn init(email:&Email,domain:String,message_id:String,body:Vec<Action>) -> Re
         _compile_body.push_str(&v);
     }
 
-    // println!("{:?}",_compile_body);
+    // println!("\n{:?}\n",_compile_body);
 
     let body_hash = hash_sha256_encoded(_compile_body);
     compile = add_field(compile,"bh".to_string(),body_hash);
@@ -50,6 +50,9 @@ pub fn init(email:&Email,domain:String,message_id:String,body:Vec<Action>) -> Re
     //cauculate dkim signature
 
     let final_build = format!("{}dkim-signature:{}",_concantat_header,compile);
+
+    // println!("\n\n final_build : {:?}\n\n",final_build);
+
     match sign_here(email.private_key.clone(),final_build.into_bytes()){
         Ok(dkim_signature)=>{
             compile = compile.replace("b=",&format!("b={}",dkim_signature));

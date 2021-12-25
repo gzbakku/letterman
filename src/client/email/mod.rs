@@ -1,7 +1,22 @@
-use crate::client::nsync::execute::send_mail;
+use chrono::Utc;
+// use openssl::pkey::{PKey,Private};
+use crate::client::Connection;
+
+mod parse;
+
+#[derive(Debug,Clone)]
+pub struct Action {
+    pub tag:&'static str,
+    pub cate:&'static str,
+    pub io:&'static str,
+    pub cmd:String
+}
 
 #[derive(Debug,Clone)]
 pub struct Email {
+    pub tracking_id:String,
+    pub unique_id:String,
+    pub private_key:String,
     pub server_name:String,
     pub name:String,
     pub from:String,
@@ -11,14 +26,9 @@ pub struct Email {
     pub subject:String,
     pub body:String,
     pub attach:Vec<String>,
-    pub attach_base64:Vec<BaseFile>,
-    pub is_html:bool
-}
-
-#[derive(Debug,Clone)]
-pub struct BaseFile{
-    pub name:String,
-    pub base64:String
+    pub attach_base64:Vec<(String,String,String)>,//file_name,base64,file_mime
+    pub html:String,
+    pub date:String
 }
 
 #[allow(dead_code)]
@@ -27,6 +37,9 @@ impl Email{
     #[allow(dead_code)]
     pub fn new() -> Email{
         Email{
+            tracking_id:String::new(),
+            unique_id:String::new(),
+            private_key:String::new(),
             server_name:String::new(),
             name:String::new(),
             from:String::new(),
@@ -37,9 +50,16 @@ impl Email{
             body:String::new(),
             attach:Vec::new(),
             attach_base64:Vec::new(),
-            is_html:false
+            html:String::new(),
+            date:Utc::now().to_rfc2822()
         }
     }
+    #[allow(dead_code)]
+    pub fn tracking_id(&mut self,v:String){self.tracking_id = v;}
+    #[allow(dead_code)]
+    pub fn unique_id(&mut self,v:String){self.unique_id = v;}
+    #[allow(dead_code)]
+    pub fn private_key(&mut self,v:String){self.private_key = v;}
     #[allow(dead_code)]
     pub fn server_name(&mut self,v:String){self.server_name = v;}
     #[allow(dead_code)]
@@ -71,26 +91,21 @@ impl Email{
     #[allow(dead_code)]
     pub fn attach(&mut self,v:String){self.attach.push(v);}
     #[allow(dead_code)]
-    pub fn attach_base64(&mut self,name:String,base64:String){
-        self.attach_base64.push(BaseFile {
-            name:name,
-            base64:base64
-        });
+    pub fn attach_base64(&mut self,name:String,base64:String,mime:String){
+        self.attach_base64.push((name,base64,mime));
     }
     #[allow(dead_code)]
-    pub fn is_html(&mut self){self.is_html = true;}
+    pub fn html(&mut self,body:String){self.html = body;}
     #[allow(dead_code)]
     pub fn get(self) -> Email{return self;}
-    #[allow(dead_code)]
-    pub async fn send(self) -> Result<(),&'static str>{
-        match send_mail(self).await{
-            Ok(_)=>{
-                return Ok(());
+    pub async fn parse(self,conn:&Connection)->Result<(Vec<String>,String),&'static str>{
+        match parse::init(self,conn).await{
+            Ok(v)=>{
+                return Ok(v);
             },
-            Err(e)=>{
-                return Err(e);
+            Err(_e)=>{
+                return Err(_e);
             }
         }
     }
-
 }

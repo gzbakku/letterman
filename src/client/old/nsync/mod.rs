@@ -1,18 +1,19 @@
 use crate::io;
-use crate::client::{Action,Email,parse};
+use crate::client_old::{Action,Email,parse};
 use std::net::TcpStream;
 use native_tls::{TlsStream,TlsConnector};
+
 mod resolve;
 
-pub fn send_mail(email:Email) -> Result<(),&'static str> {
+pub async fn send_mail(email:Email) -> Result<(),&'static str> {
 
     let actions:Vec<Action>;
     match parse::init(email.clone()){
         Ok(a)=>{
             actions = a;
         },
-        Err(e)=>{
-            println!("!!! {:?}",e);
+        Err(_e)=>{
+            println!("failed-parse_mail : {:?}",_e);
             return Err("failed-parse_mail");
         }
     }
@@ -20,14 +21,17 @@ pub fn send_mail(email:Email) -> Result<(),&'static str> {
     if email.to.contains("localhost"){
         let to_mail = email.to.clone();
         let email_split = to_mail.split("@").collect::<Vec<&str>>();
-        match try_port(email_split[1].to_string(),&actions,true){
+        match try_port(email_split[1].to_string() + ":587",&actions,true){
             Ok(_)=>{return Ok(())},
-            Err(_)=>{return Err("failed-send_to_locahost");}
+            Err(e)=>{
+                println!("failed-send_to_locahost : {:?}",e);
+                return Err("failed-send_to_locahost");
+            }
         }
     }
 
     let holders:resolve::RESV;
-    match resolve::init(email.to.clone()){
+    match resolve::init(email.to.clone()).await{
         Ok(h)=>{
             holders = h;
         },
@@ -46,11 +50,6 @@ pub fn send_mail(email:Email) -> Result<(),&'static str> {
         }
     } else {
         for addr in holders.pool.iter(){
-            // let mut addr = runner.exchange().to_utf8();
-            // if addr.as_bytes()[addr.len()-1] == ".".as_bytes()[0]{
-            //     // addr.split_off(&addr.len()-1);
-            //     addr.truncate(&addr.len()-1);   //changed from splitoff to truncate
-            // }
             match try_address(addr.to_string(),&actions){
                 Ok(_)=>{return Ok(());},
                 Err(e)=>{
@@ -67,15 +66,15 @@ pub fn send_mail(email:Email) -> Result<(),&'static str> {
 }
 
 fn try_address(addr:String,actions:&Vec<Action>) -> Result<(),&'static str>{
-    // let ports = ["25","465","587","2525"];
-    let ports = ["25"];
+    // println!("b : {:?}",addr);
+    let ports = ["587","2525","465","25"];
+    // let ports = ["25"];
     for port in ports.iter(){
         match try_port(format!("{}:{}",addr,port),&actions,false){
             Ok(_)=>{
                 return Ok(());
             },
             Err(e)=>{
-                // println!("{:?}",e);
                 // println!("!!! email denied by the service");
                 if e == "dont_continue"{return Err("dont_continue")}
                 if e == "tls_failed"{
@@ -96,8 +95,6 @@ fn try_address(addr:String,actions:&Vec<Action>) -> Result<(),&'static str>{
 
 fn try_port(addr:String,actions:&Vec<Action>,no_tls:bool) -> Result<(),&'static str>{
 
-    // println!("==============) {:?}",no_tls);
-
     let mut stream;
     match TcpStream::connect(addr.clone()) {
         Ok(r)=>{
@@ -109,13 +106,16 @@ fn try_port(addr:String,actions:&Vec<Action>,no_tls:bool) -> Result<(),&'static 
         }
     }
 
-    if false{
+    // println!("client connection started");
+
+    if true{
         match try_port_secure(addr,stream, actions){
             Ok(_)=>{
                 return Ok(());
             },
-            Err(_)=>{
-                return Err("failed-starttls");
+            Err(e)=>{
+                println!("failed-try_port_secure : {:?}",e);
+                return Err("failed-try_port_secure");
             }
         }
     }
@@ -147,41 +147,44 @@ fn try_port(addr:String,actions:&Vec<Action>,no_tls:bool) -> Result<(),&'static 
             } else {
                 match io::send(&mut stream,action.cmd.to_string()){
                     Ok(r)=>{
+
                         // println!("{:?}",r);
+
                         if r.result == false {
                             // println!("action : {:?}",action);
                             return Err("failed-write-cmd-result");
-                        } else {
-                            if action.tag == "say_hello"{
-                                // println!("write action : {:?}, result : {:?}",action.tag,r);
-                                let mut can_tls = false;
-                                for feature in r.features{
-                                    if feature._type == "STARTTLS"{can_tls = true;}
-                                }
-                                if can_tls && !no_tls{
-                                    match io::send(&mut stream,"STARTTLS".to_string()){
-                                        Ok(r)=>{
-                                            // println!("============ {:?}",r);
-                                            if !r.result{return Err("failed-STARTTLS");} else {
-                                                match try_port_secure(addr,stream, actions){
-                                                    Ok(_)=>{
-                                                        return Ok(());
-                                                    },
-                                                    Err(e)=>{
-                                                        if e == "dont_continue" {
-                                                            return Err("dont_continue");
-                                                        }
-                                                        println!("failed-start_tls : {:?}",e);
-                                                        return Err("tls_failed");
+                        }
+
+                        if action.tag == "say_hello"{
+                            // println!("write action : {:?}, result : {:?}",action.tag,r);
+                            let mut can_tls = false;
+                            for feature in r.features{
+                                if feature._type == "STARTTLS"{can_tls = true;}
+                            }
+                            if can_tls && !no_tls{
+                                match io::send(&mut stream,"STARTTLS".to_string()){
+                                    Ok(r)=>{
+                                        // println!("============ {:?}",r);
+                                        if !r.result{return Err("failed-STARTTLS");} else {
+                                            match try_port_secure(addr,stream, actions){
+                                                Ok(_)=>{
+                                                    return Ok(());
+                                                },
+                                                Err(e)=>{
+                                                    if e == "dont_continue" {
+                                                        return Err("dont_continue");
                                                     }
+                                                    println!("failed-start_tls : {:?}",e);
+                                                    return Err("tls_failed");
                                                 }
                                             }
-                                        },
-                                        Err(_)=>{return Err("failed-STARTTLS")}
-                                    }
+                                        }
+                                    },
+                                    Err(_)=>{return Err("failed-STARTTLS")}
                                 }
                             }
                         }
+
                     },
                     Err(_)=>{
                         println!("failed-write-execute-for => {:#?}",action);
@@ -204,14 +207,23 @@ fn try_port_secure(addr:String,base_stream:TcpStream,actions:&Vec<Action>) -> Re
     let only_addr = addr_split[0];
 
     let mut stream:TlsStream<TcpStream>;
-    match TlsConnector::new(){
+    match TlsConnector::builder()
+    .danger_accept_invalid_certs(true)
+    .build()
+    {
         Ok(connector)=>{
             match connector.connect(only_addr, base_stream){
                 Ok(s)=>{stream = s;},
-                Err(_)=>{return Err("failed-connect-tls_connector");}
+                Err(e)=>{
+                    println!("failed-connect-tls_connector : {:?}",e);
+                    return Err("failed-connect-tls_connector");
+                }
             }
         },
-        Err(_)=>{return Err("failed-start-tls_connector");}
+        Err(_)=>{
+            println!("tls connection failed");
+            return Err("failed-start-tls_connector");
+        }
     }
 
     // println!("=============== {:?}",addr);

@@ -1,5 +1,23 @@
-use crate::client::execute::send_mail;
 use chrono::Utc;
+
+mod sync;
+mod parse;
+mod nsync;
+
+#[derive(Debug,Clone)]
+pub struct Action {
+    pub tag:&'static str,
+    pub cate:&'static str,
+    pub io:&'static str,
+    pub cmd:String
+}
+
+pub fn read_key(path:String) -> Result<String,String>{
+    match crate::io::read_as_text(path){
+        Ok(v)=>{return Ok(v)},
+        Err(e)=>{return Err(format!("failed-read_key => {}",e));}
+    }
+}
 
 #[derive(Debug,Clone)]
 pub struct Email {
@@ -94,7 +112,18 @@ impl Email{
     pub fn get(self) -> Email{return self;}
     #[allow(dead_code)]
     pub fn send(self) -> Result<(),&'static str>{
-        match send_mail(self){
+        match sync::send_mail(self){
+            Ok(_)=>{
+                return Ok(());
+            },
+            Err(e)=>{
+                return Err(e);
+            }
+        }
+    }
+    #[allow(dead_code)]
+    pub async fn send_tokio(self) -> Result<(),&'static str>{
+        match nsync::send_mail(self).await{
             Ok(_)=>{
                 return Ok(());
             },

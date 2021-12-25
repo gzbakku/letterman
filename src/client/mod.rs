@@ -1,137 +1,132 @@
-use chrono::Utc;
 
-mod sync;
-mod parse;
-mod nsync;
+mod io;
+mod email;
+mod connection;
 
-#[derive(Debug,Clone)]
-pub struct Action {
-    pub tag:&'static str,
-    pub cate:&'static str,
-    pub io:&'static str,
-    pub cmd:String
-}
+pub use email::{Email,Action};
+pub use connection::Connection;
 
+///
+///```
+/// use std::time::Instant;
+/// use letterman::client::{Connection,Email};
+/// 
+///async fn start_async_client() {
+///
+/// println!(">>> sending mail async");
+///
+/// //d://workstation/expo/rust/letterman/letterman/keys/private.key
+///
+/// let key:String;
+/// match client::read_key("../secret/private.key".to_string()).await{
+///     Ok(v)=>{
+///         key = v;
+///     },
+///     Err(e)=>{
+///         println!("!!! {:?}",e);
+///         return;
+///     }
+/// }
+///
+/// // println!("{:?}",key);
+///
+/// let mut conn:Connection;
+/// if SEND_TO_DKIMVALIDATOR{
+///     match Connection::new(
+///         String::from("dkimvalidator.com"),
+///         String::from("mailcenter.herokuapp.com"),
+///         key,
+///         String::from("dkim"),
+///         String::from("silvergram.in"),
+///     ){
+///         Ok(v)=>{conn = v;},
+///         Err(_)=>{
+///             return;
+///         }
+///     }
+/// } else if SEND_TO_LOCALHOST {
+///     //localhost
+///     match Connection::new(
+///         String::from("localhost"),
+///         String::from("mailcenter.herokuapp.com"),
+///         key,
+///         String::from("dkim"),
+///         String::from("silvergram.in"),
+///     ){
+///         Ok(v)=>{conn = v;},
+///         Err(_)=>{
+///             return;
+///         }
+///     }
+/// } else {
+///     return;
+/// }
+///
+/// for i in 0..1{
+///     conn.add(build_mail_new(i.to_string()));
+/// }
+///
+/// // println!("mails added");
+///
+/// let hold = Instant::now();
+///
+/// if true{
+///     match conn.send().await{
+///         Ok(_v)=>{
+///             println!("send successfull  : {:?} {:?}",_v.0,_v.1);
+///         },
+///         Err(_e)=>{
+///             println!("send failed : {:?}",_e);
+///         }
+///     }
+/// }
+///
+/// println!("finished in  : {:?}",hold.elapsed());
+///
+/// }
+/// 
+/// fn build_mail_new(tracking_id:String) -> client::Email{
+///
+/// let mut email = client::Email::new();
+///
+/// email.server_name(String::from("mailcenter.herokuapp.com"));
+/// email.name(String::from("gzbakku"));
+/// email.from(String::from("akku@silvergram.in"));
+/// email.tracking_id(tracking_id);
+///
+/// if SEND_TO_DKIMVALIDATOR{
+///     email.to(String::from("yPEHwb2zlYrYM9@dkimvalidator.com"));
+/// } else if SEND_TO_LOCALHOST {
+///     email.to(String::from("gzbakku@localhost"));
+/// }
+///
+/// email.subject(String::from("hello world"));
+/// email.body(String::from("first message\r\nsecond message\r\nthird message"));
+///
+/// if 1 == 1 {
+///     email.html(String::from("<html> <header><title>This is title</title></header> <body> <h1>Hello world</h1> </body> </html>"));
+/// }
+///
+/// if 1 == 1 {
+///     email.attach("d://workstation/expo/rust/letterman/letterman/drink.png".to_string());
+/// }
+///
+/// if 1 == 1 {
+///     let base64_data = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAAdgAAAHYBTnsmCAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAJfSURBVDiNpZLdS1MBGMafc87OPtx23M7Opse2hDb8mB+ZLRC70IhBd4GSJAUVYnXVXyBBEHST1xZRmUgXgdHFiC6KwixCyjLDmTKx4cm17Ux2trntnO3YTYrOFYTP3fvwvj8eeF5gn6L+4pPtza6bvJ3xrcWkd/9NrXXaep49vCKP3Dqbomn68Cl/w52BC8emJsYvdpTuasoB0tl88Gngc0TK5GRFUSrP9fou9fZ5tQ8eTY8COAIg+0+AKKaDYxPTbQAUAAeK+U0SKoGVlXXDH29bxM6Bc/B3K4zWWlUtZIuKnC0UCxsESSotddZBzyEXNbcQTi2GxMfxqHC1XAJSpzd1eVs76g0VZtC0dleqaE4G43CYdcLbbgAkALUUoArhpf4ui+Wj286TyXwOObUIANCTFCp1OoRiEVUIL/VvHW8DWI4fZBh2QJLEF7yd/9njO+7UECTYCiMAILGRQWFTxfinKYHlqk8zjG1EkhL3E/G1exqLveqat7njRo3LY1lbDfli+bQa2chg6ZeA+UQcAIEmloOnqgbRXL66qbVziHe6qdXwYv383Ac9yZisgzUujwUATJUspXewtH94CG5vI2aTEmaTSbibGuEfHoLBztJmhqUAwHmwzsIw7GXN+np89OXzsQaG4VoUOZdWOFtbKjBpO2ricLvLDwBwG21IBSaxHFoWgwnxC63VmyQpPqcUisFdNQLAyfrm133tnd3l/uPJzPs3r75/O7HT2/NIZkpbrCUIGEtqTMt5GAhSLd3fA5gRQmd+1LVcD0uCOyRGrVt+RpGlwMLX8+WS7Uu/AV/Q4yOF5rS7AAAAAElFTkSuQmCC".to_string();
+///     email.attach_base64("drink_1.png".to_string(),base64_data,"image/png".to_string());
+/// }
+///
+/// return email;
+///
+/// }
+/// 
+/// 
+///```
 
-pub fn read_key(path:String) -> Result<String,String>{
-    match crate::io::read_as_text(path){
+pub async fn read_key(path:String) -> Result<String,String>{
+    match crate::io::read_as_text(path).await{
         Ok(v)=>{return Ok(v)},
         Err(e)=>{return Err(format!("failed-read_key => {}",e));}
     }
 }
 
-#[derive(Debug,Clone)]
-pub struct Email {
-    pub dkim_selector:String,
-    pub private_key:String,
-    pub server_name:String,
-    pub name:String,
-    pub from:String,
-    pub to:String,
-    pub cc:String,
-    pub bcc:String,
-    pub subject:String,
-    pub body:String,
-    pub attach:Vec<String>,
-    pub attach_base64:Vec<BaseFile>,
-    pub is_html:bool,
-    pub date:String
-}
-
-#[derive(Debug,Clone)]
-pub struct BaseFile{
-    pub name:String,
-    pub base64:String
-}
-
-#[allow(dead_code)]
-impl Email{
-
-    #[allow(dead_code)]
-    pub fn new() -> Email{
-        Email{
-            dkim_selector:String::from("dkim"),
-            private_key:String::new(),
-            server_name:String::new(),
-            name:String::new(),
-            from:String::new(),
-            to:String::new(),
-            cc:String::new(),
-            bcc:String::new(),
-            subject:String::new(),
-            body:String::new(),
-            attach:Vec::new(),
-            attach_base64:Vec::new(),
-            is_html:false,
-            date:Utc::now().to_rfc2822()
-        }
-    }
-    #[allow(dead_code)]
-    pub fn dkim_selector(&mut self,v:String){self.dkim_selector = v;}
-    #[allow(dead_code)]
-    pub fn private_key(&mut self,v:String){self.private_key = v;}
-    #[allow(dead_code)]
-    pub fn server_name(&mut self,v:String){self.server_name = v;}
-    #[allow(dead_code)]
-    pub fn name(&mut self,v:String){self.name = v;}
-    #[allow(dead_code)]
-    pub fn to(&mut self,v:String){self.to = v;}
-    #[allow(dead_code)]
-    pub fn from(&mut self,v:String){self.from = v;}
-    #[allow(dead_code)]
-    pub fn cc(&mut self,v:String){
-        if self.cc.len() > 0{
-            self.cc.push_str(&format!(",{}",v));
-        } else {
-            self.cc.push_str(&v);
-        }
-    }
-    #[allow(dead_code)]
-    pub fn bcc(&mut self,v:String){
-        if self.bcc.len() > 0{
-            self.bcc.push_str(&format!(",{}",v));
-        } else {
-            self.bcc.push_str(&v);
-        }
-    }
-    #[allow(dead_code)]
-    pub fn subject(&mut self,v:String){self.subject = v;}
-    #[allow(dead_code)]
-    pub fn body(&mut self,v:String){self.body = v;}
-    #[allow(dead_code)]
-    pub fn attach(&mut self,v:String){self.attach.push(v);}
-    #[allow(dead_code)]
-    pub fn attach_base64(&mut self,name:String,base64:String){
-        self.attach_base64.push(BaseFile {
-            name:name,
-            base64:base64
-        });
-    }
-    #[allow(dead_code)]
-    pub fn is_html(&mut self){self.is_html = true;}
-    #[allow(dead_code)]
-    pub fn get(self) -> Email{return self;}
-    #[allow(dead_code)]
-    pub fn send(self) -> Result<(),&'static str>{
-        match sync::send_mail(self){
-            Ok(_)=>{
-                return Ok(());
-            },
-            Err(e)=>{
-                return Err(e);
-            }
-        }
-    }
-    #[allow(dead_code)]
-    pub async fn send_tokio(self) -> Result<(),&'static str>{
-        match nsync::send_mail(self).await{
-            Ok(_)=>{
-                return Ok(());
-            },
-            Err(e)=>{
-                return Err(e);
-            }
-        }
-    }
-
-}

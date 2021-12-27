@@ -88,7 +88,7 @@ where
     let no_submit_workers = conf.no_of_submitters.clone();
     let que_sender_clone = que_sender.clone();
     let submit_signal_clone = submit_signal.clone();
-    if false{
+    if true{
         ThreadSpawn(move || {
             match submit::start(
                 que_sender_clone,

@@ -9,7 +9,7 @@ use openssl::sign::Signer;
 use openssl::pkey::{PKey,Private};
 use openssl::hash::MessageDigest;
 
-pub async fn init(email:Email,conn:&Connection)->Result<(Vec<String>,String),&'static str>{
+pub async fn init(email:Email,conn:&Connection)->Result<(Vec<String>,String,u64),&'static str>{
 
     let mut commands = vec![];
     let mut headers = String::new();
@@ -184,7 +184,13 @@ pub async fn init(email:Email,conn:&Connection)->Result<(Vec<String>,String),&'s
     // write_file(commands[3].clone()).await;
     // println!("\n-------\n\n{}\n\n-------\n",commands[3]);
 
-    return Ok((commands,email.tracking_id));
+    let mut size:u64 = 0;
+    size += commands[0].len() as u64;
+    size += commands[1].len() as u64;
+    size += commands[2].len() as u64;
+    size += commands[3].len() as u64;
+
+    return Ok((commands,email.tracking_id,size));
 
 }
 

@@ -98,7 +98,7 @@ impl Email{
     pub fn html(&mut self,body:String){self.html = body;}
     #[allow(dead_code)]
     pub fn get(self) -> Email{return self;}
-    pub async fn parse(self,conn:&Connection)->Result<(Vec<String>,String),&'static str>{
+    pub async fn parse(self,conn:&Connection)->Result<(Vec<String>,String,u64),&'static str>{
         match parse::init(self,conn).await{
             Ok(v)=>{
                 return Ok(v);

@@ -111,6 +111,7 @@ where
     // features.push_str(&format!("250-{} Hello {}\r\n",&info_lock.name,&hostname));
     features.push_str(&format!("250-SIZE {}\r\n",&info_lock.size));
     features.push_str(&format!("250-PIPELINING\r\n"));
+    features.push_str(&format!("250-8BITMIME\r\n"));
     match io::send_server(&mut stream,&features).await{
         Ok(_)=>{},
         Err(_)=>{

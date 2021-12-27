@@ -67,7 +67,7 @@ impl Connection{
 
 async fn build(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&'static str>{
 
-    let mut parsed_mails:Vec<(Vec<String>,String)> = Vec::new();
+    let mut parsed_mails:Vec<(Vec<String>,String,u64)> = Vec::new();
     loop{
         if config.emails.len() == 0{
             break;
@@ -75,7 +75,6 @@ async fn build(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&'stati
         let email = config.emails.remove(0);
         match email.parse(&config).await{
             Ok(v)=>{
-                // println!("successfull-parse_email");
                 parsed_mails.push(v);
             },
             Err(_)=>{
@@ -84,10 +83,6 @@ async fn build(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&'stati
             }
         }
     }
-
-    println!(">>> mails parsed");
-
-    // process_mail(&mut connection,&mut commands,&features).await;
 
     let mut connection:Connected;
     let port:u32;
@@ -98,12 +93,9 @@ async fn build(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&'stati
         }
     }
 
-    // println!("connection established");
-
     //wait for helo
     match io::secure_read(&mut connection).await{
         Ok(read)=>{
-            // println!("{:?}",read);
             if !read.result{
                 return Err("denied-wait_for_hello");
             }
@@ -113,15 +105,6 @@ async fn build(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&'stati
             return Err("failed-wait_for_hello");
         }
     }
-
-    //say hello
-    // match io::secure_send(&mut connection,format!("EHLO {}\r\n",config.server_name)).await{
-    //     Ok(_)=>{},
-    //     Err(_e)=>{
-    //         println!("!!! failed-reply_hello : {:?}",_e);
-    //         return Err("failed-wait_for_hello");
-    //     }
-    // }
 
     let features:Features;
     match io::secure_send_with_features(&mut connection,format!("EHLO {}\r\n",config.server_name)).await{
@@ -150,20 +133,13 @@ async fn build(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&'stati
         }
     }
 
-    // println!("features : {:?}",features);
-
-    //listen for features
-    
-    // match io::secure_read_features(&mut connection).await{
-    //     Ok(v)=>{
-    //         // println!("features : {:#?}",features);
-    //         features = v;
-    //     },
-    //     Err(_e)=>{
-    //         println!("!!! failed-listen_for_features : {:?}",_e);
-    //         return Err("failed-wait_for_hello");
-    //     }
-    // }
+    if features.limit_size{
+        for (_,_,size) in parsed_mails.iter(){
+            if size > &features.size{
+                return Err("max-size_limit-reached");
+            }
+        }
+    }
 
     if features.start_tls{
         match connection{
@@ -192,8 +168,6 @@ async fn build(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&'stati
         }
     }
 
-    // println!(">>> sending");
-
     //parse email
     let mut failed = Vec::new();
     let mut successfull = Vec::new();
@@ -201,7 +175,7 @@ async fn build(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&'stati
         if parsed_mails.len() == 0{
             break;
         }
-        let (mut commands,tracking_id) = parsed_mails.remove(0);
+        let (mut commands,tracking_id,_) = parsed_mails.remove(0);
         match process_mail(&mut connection,&mut commands,&features).await{
             Ok(_)=>{
                 successfull.push(tracking_id);

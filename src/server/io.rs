@@ -312,3 +312,55 @@ fn vector_in_vector(v1:&Vec<u8>,v2:&Vec<u8>,start_cursor:usize)->Result<(usize,u
     }
 
 }
+
+pub async fn read_server_till_end(
+    stream:&mut TokioRustLSTlsStream<TokioTcpStream>,
+    buffer:&mut Vec<u8>,
+    replace:&str
+) -> Result<String,&'static str> {
+
+    // let mut collect = Vec::new();
+    // let mut buff = [0; 5000];
+
+    loop {
+        let mut local_buffer = [0;512];
+        match timeout(Duration::from_secs(TIMEOUT_DURATION),stream.read(&mut local_buffer)).await{
+            Ok(r)=>{
+                match r{
+                    Ok(_v)=>{
+                        let mut hold = local_buffer.to_vec();
+                        let _ = hold.split_off(_v);
+                        buffer.append(&mut hold);
+                        if _v < 512{
+                            break;
+                        }
+                    },
+                    Err(_)=>{
+                        return Err("failed-read");
+                    }
+                }
+            },
+            Err(_)=>{
+                return Err("timeout");
+            }
+        }
+    }
+
+    match String::from_utf8(buffer.to_vec()) {
+        Ok(mut result)=>{
+            buffer.clear();
+            if replace.len() == 0{
+                return Ok(result);
+            } else {
+                while result.contains(replace){
+                    result = result.replace(replace,"");
+                }
+                return Ok(result); 
+            }
+        },
+        Err(_)=>{
+            return Err("failed-parse_byte_array-to_string-read");
+        }
+    }
+
+}

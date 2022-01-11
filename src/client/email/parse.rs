@@ -11,6 +11,10 @@ use openssl::hash::MessageDigest;
 
 pub async fn init(email:Email,conn:&Connection)->Result<(Vec<String>,String,u64),&'static str>{
 
+    if email.receivers.len() == 0{
+        return Err("not_found-receivers-parse_email");
+    }
+
     let mut commands = vec![];
     let mut headers = String::new();
     let mut dkim_headers = String::new();
@@ -26,7 +30,10 @@ pub async fn init(email:Email,conn:&Connection)->Result<(Vec<String>,String,u64)
         headers.push_str(&format!("FROM: <{}>\r\n",email.from));
         dkim_headers.push_str(&format!("from:<{}>\r\n",email.from));
     }
-    commands.push(format!("RCPT TO:<{}>\r\n",email.to));
+    for i in email.receivers.iter(){
+        commands.push(format!("RCPT TO:<{}>\r\n",i));
+    }
+    // commands.push(format!("RCPT TO:<{}>\r\n",email.to));
     commands.push(format!("DATA\r\n"));
 
     
@@ -189,6 +196,8 @@ pub async fn init(email:Email,conn:&Connection)->Result<(Vec<String>,String,u64)
     size += commands[1].len() as u64;
     size += commands[2].len() as u64;
     size += commands[3].len() as u64;
+
+    // println!("{:?}",commands);
 
     return Ok((commands,email.tracking_id,size));
 

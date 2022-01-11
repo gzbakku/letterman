@@ -93,6 +93,9 @@ fn build_mail_new(tracking_id:String) -> Email{
     email.from(String::from("akku@silvergram.in"));
     email.tracking_id(tracking_id);
     email.to(String::from("gzbakku@localhost"));
+    //the receivers will receive the message this feature allows cc and bcc smtp functions
+    email.receiver(String::from("gzbakku@localhost"));
+    email.receiver(String::from("gzbakku1@localhost"));
     email.subject(String::from("hello world"));
     email.body(String::from("first message\r\nsecond message\r\nthird message"));
 

@@ -96,8 +96,10 @@ pub use connection::Connection;
 ///
 /// if SEND_TO_DKIMVALIDATOR{
 ///     email.to(String::from("yPEHwb2zlYrYM9@dkimvalidator.com"));
+///     email.receiver(String::from("yPEHwb2zlYrYM9@dkimvalidator.com"));
 /// } else if SEND_TO_LOCALHOST {
 ///     email.to(String::from("gzbakku@localhost"));
+///     email.receiver(String::from("gzbakku@localhost"));
 /// }
 ///
 /// email.subject(String::from("hello world"));

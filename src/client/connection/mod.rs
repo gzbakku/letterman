@@ -25,6 +25,7 @@ pub struct Connection{
     pub private_key:PKey<Private>,
     pub dkim_selector:String,
     pub emails:Vec<Email>,
+    // pub verify:Vec<String>,
     pub sender_domain:String,
 }
 
@@ -51,21 +52,29 @@ impl Connection{
             private_key:private_key,
             dkim_selector:dkim_selector,
             emails:vec![],
+            // verify:vec![],
             sender_domain:sender_domain
         });
     }
-    pub fn add(&mut self,email:Email){
-        self.emails.push(email);
-    }
+    pub fn add(&mut self,email:Email){self.emails.push(email);}
+    // #[allow(dead_code)]
+    // pub fn verify(&mut self,email:String){self.verify.push(email);}
+    // #[allow(dead_code)]
+    // pub async fn verify_all(&mut self)->Result<(),&'static str>{
+    //     match verify_all(self).await{
+    //         Ok(_v)=>{return Ok(());},
+    //         Err(e)=>{return Err(e);}
+    //     }
+    // }
     pub async fn send(&mut self)->Result<(Vec<String>,Vec<String>),&'static str>{
-        match build(self).await{
+        match send_emails(self).await{
             Ok(_v)=>{return Ok(_v);},
             Err(e)=>{return Err(e);}
         }
     }
 }
 
-async fn build(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&'static str>{
+async fn send_emails(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&'static str>{
 
     let mut parsed_mails:Vec<(Vec<String>,String,u64)> = Vec::new();
     loop{
@@ -83,6 +92,188 @@ async fn build(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&'stati
             }
         }
     }
+
+    let mut connection:Connected;
+    let features:Features;
+    match build_smtp_connection(config).await{
+        Ok((conn,f))=>{
+            connection = conn;
+            features = f;
+        },
+        Err(_e)=>{
+            return Err(_e);
+        }
+    }
+
+    if features.limit_size{
+        for (_,_,size) in parsed_mails.iter(){
+            if size > &features.size{
+                return Err("max-size_limit-reached");
+            }
+        }
+    }
+
+    //parse email
+    let mut failed = Vec::new();
+    let mut successfull = Vec::new();
+    loop{
+        if parsed_mails.len() == 0{
+            break;
+        }
+        let (mut commands,tracking_id,_) = parsed_mails.remove(0);
+        match process_mail(&mut connection,&mut commands,&features).await{
+            Ok(_)=>{
+                successfull.push(tracking_id);
+            },
+            Err(_e)=>{
+                println!("!!! send_mail_error : {:?}",_e);
+                failed.push(tracking_id);
+                match io::secure_send_with_response(&mut connection,"RSET\r\n".to_string()).await{
+                    Ok(response)=>{
+                        if !response.result{
+                            return Err("reset_failed");
+                        }
+                    },
+                    Err(_)=>{
+                        return Err("reset-request-failed");
+                    }
+                }
+            }
+        }
+    }
+
+    match io::secure_send(&mut connection,"QUIT\r\n".to_string()).await{
+        Ok(_)=>{},
+        Err(_)=>{}
+    }
+
+    return Ok((successfull,failed));
+
+}
+
+pub async fn process_mail(connection:&mut Connected,commands:&mut Vec<String>,features:&Features)->Result<(),&'static str>{
+
+    println!(">>> process_mail");
+
+    let body:String;
+    match commands.pop(){
+        Some(v)=>{body = v;},
+        None=>{return Err("not-found-body");}
+    }
+    let batch_commands_len = commands.len();
+
+    loop{
+
+        if commands.len() == 0{
+            break;
+        }
+
+        let command = commands.remove(0);
+
+        match io::secure_send(connection,command).await{
+            Ok(_)=>{},
+            Err(_)=>{
+                // println!("!!! failed-email_command-send");
+                return Err("connection_closed-write");
+            }
+        }
+
+        // println!("{:?}",command);
+
+        // println!(">>> command_sent");
+        
+        if !features.pipeline{
+            match io::secure_read(connection).await{
+                Ok(response)=>{
+                    // println!(">>> response : {:?}",response);
+                    if !response.result{
+                        // println!(">>> response : {:?}",response);
+                        return Err("smtp_error");
+                    }
+                },
+                Err(_e)=>{
+                    println!("!!! failed-non_pipeline-read : {:?}",_e);
+                    return Err("connection_closed-read");
+                }
+            }
+        }
+
+    }
+
+    // println!(">>> commands sent");
+
+    println!("batch_commands_len : {:?}",batch_commands_len);
+
+    if features.pipeline{
+        let mut index = 0;
+        let mut to_command = 0;
+        loop{
+            if index == batch_commands_len{
+                // println!("responses finished");
+                break;
+            }
+            match io::secure_read_qued(connection).await{
+                Ok(responses)=>{
+                    for response in responses{
+                        // println!(">>> response : {:?} {:?}",index,response.result);
+                        if index == 0{
+                            if !response.result{
+                                return Err("failed-from_command");
+                            }
+                        }
+                        if index > 0 && index < batch_commands_len-1{
+                            // println!("to command");
+                            if response.result{
+                                to_command += 1;
+                            }
+                        }
+                        if index == batch_commands_len-1{
+                            if !response.result{
+                                return Err("failed-data_command");
+                            }
+                        }
+                        index += 1;
+                    }
+                },
+                Err(_)=>{
+                    return Err("connection_closed-read_qued");
+                }
+            }//process responses   
+        }//loop all tyhe repsonses
+        if to_command == 0{
+            return Err("no_valid_receivers");
+        }
+    }
+
+    //send body
+    match io::secure_send(connection,body).await{
+        Ok(_)=>{},
+        Err(_)=>{
+            // println!("!!! failed-email_command-send");
+            return Err("connection_closed-write");
+        }
+    }
+
+    //read body response
+    match io::secure_read_qued(connection).await{
+        Ok(responses)=>{
+            for response in responses{
+                // println!(">>> response : {:?}",response);
+                if !response.result{
+                    return Err("smtp_error");
+                }
+            }
+        },
+        Err(_)=>{
+            return Err("connection_closed-read_qued");
+        }
+    }
+
+    return Ok(());
+
+}
+
+pub async fn build_smtp_connection(config:&mut Connection)->Result<(Connected,Features),&'static str>{
 
     let mut connection:Connected;
     let port:u32;
@@ -133,14 +324,6 @@ async fn build(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&'stati
         }
     }
 
-    if features.limit_size{
-        for (_,_,size) in parsed_mails.iter(){
-            if size > &features.size{
-                return Err("max-size_limit-reached");
-            }
-        }
-    }
-
     if features.start_tls{
         match connection{
             Connected::InSecure(_)=>{
@@ -168,113 +351,6 @@ async fn build(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&'stati
         }
     }
 
-    //parse email
-    let mut failed = Vec::new();
-    let mut successfull = Vec::new();
-    loop{
-        if parsed_mails.len() == 0{
-            break;
-        }
-        let (mut commands,tracking_id,_) = parsed_mails.remove(0);
-        match process_mail(&mut connection,&mut commands,&features).await{
-            Ok(_)=>{
-                successfull.push(tracking_id);
-            },
-            Err(_e)=>{
-                println!("!!! send_mail_error : {:?}",_e);
-                failed.push(tracking_id);
-                match io::secure_send_with_response(&mut connection,"RESET\r\n".to_string()).await{
-                    Ok(response)=>{
-                        if !response.result{
-                            return Err("reset_failed");
-                        }
-                    },
-                    Err(_)=>{
-                        return Err("reset-request-failed");
-                    }
-                }
-            }
-        }
-    }
-
-    match io::secure_send(&mut connection,"QUIT\r\n".to_string()).await{
-        Ok(_)=>{},
-        Err(_)=>{}
-    }
-
-    return Ok((successfull,failed));
-
-}
-
-pub async fn process_mail(connection:&mut Connected,commands:&mut Vec<String>,features:&Features)->Result<(),&'static str>{
-
-    // println!(">>> process_mail");
-
-    loop{
-
-        if commands.len() == 0{
-            break;
-        }
-
-        let command = commands.remove(0);
-
-        match io::secure_send(connection,command.clone()).await{
-            Ok(_)=>{},
-            Err(_)=>{
-                // println!("!!! failed-email_command-send");
-                return Err("connection_closed-write");
-            }
-        }
-
-        // println!("{:?}",command);
-
-        // println!(">>> command_sent");
-        
-        if !features.pipeline{
-            match io::secure_read(connection).await{
-                Ok(response)=>{
-                    // println!(">>> response : {:?}",response);
-                    if !response.result{
-                        // println!(">>> response : {:?}",response);
-                        return Err("smtp_error");
-                    }
-                },
-                Err(_e)=>{
-                    println!("!!! failed-non_pipeline-read : {:?}",_e);
-                    return Err("connection_closed-read");
-                }
-            }
-        }
-
-    }
-
-    // println!(">>> commands sent");
-
-    if features.pipeline{
-        let mut index = 0;
-        loop{
-            if index == 4{
-                // println!("responses finished");
-                break;
-            }
-            match io::secure_read_qued(connection).await{
-                Ok(responses)=>{
-                    for response in responses{
-                        // println!(">>> response : {:?}",response);
-                        if !response.result{
-                            return Err("smtp_error");
-                        } else {
-                            index += 1;
-                        }
-                    }
-                },
-                Err(_)=>{
-                    return Err("connection_closed-read_qued");
-                }
-            }
-        }
-    }
-
-    return Ok(());
+    return Ok((connection,features));
 
 }

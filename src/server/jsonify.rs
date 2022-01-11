@@ -5,9 +5,18 @@ use std::time::{SystemTime};
 use crate::common::{sha256,random_string};
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
+// use tokio::sync::RwLock;
+// use std::sync::Arc;
+// use crate::server::config::{ServerInfo};
 
-pub async fn init(email:Email,body:EmailBody,dir:&String)->Result<Vec<u8>,&'static str>{
+pub async fn init(
+    // info:&Arc<RwLock<ServerInfo>>,
+    email:Email,
+    body:EmailBody,
+    dir:&String
+)->Result<Vec<u8>,&'static str>{
 
+    // let info_lock = info.read().await;
     let mut body = body;
 
     let time:u128;
@@ -20,14 +29,39 @@ pub async fn init(email:Email,body:EmailBody,dir:&String)->Result<Vec<u8>,&'stat
         }
     }
 
+    // println!("{:?}",body.headers);
+
+    let from:String;
+    let to:String;
+    match body.headers.get("from"){
+        Some(v)=>{from = v.clone();},
+        None=>{return Err("failed-get-from");}
+    }
+    match body.headers.get("to"){
+        Some(v)=>{to = v.clone();},
+        None=>{return Err("failed-get-to");}
+    }
+
+    // println!("from : {:?}",from);
+    // println!("to : {:?}",to);
+    // match info_lock.regex.email.captures(from){
+    //     Some(captures)=>{
+    //         match captures.get(0){
+    //             Some()=>{},
+    //             None=>{}
+    //         }
+    //     },
+    //     None=>{}
+    // }
+
     let random = random_string(7);
-    let id_string = format!("from:{:?} to:{:?} time:{:?} random:{:?}",email.from,email.to,time,random);
+    let id_string = format!("from:{:?} to:{:?} time:{:?} random:{:?}",from,to,time,random);
     let id_hash = sha256(id_string);
     let mut to_write = Vec::new();
     let mut build = object!{
         "id":id_hash.clone(),
-        "from":email.from,
-        "to":email.to,
+        "sender":email.sender,
+        "receivers":email.receivers,
         "headers":{},
         "body":[],
         "attachments":[]

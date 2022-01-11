@@ -12,17 +12,19 @@ fn error(e:&'static str){
 
 pub async fn init(
     receiver:Receiver<QueMessage>,
-    que_path:String,
-    que_frame_size:u64,
-    que_disk_writers:u64,
+    que_files:Vec<String>,
+    que_min_size:u64,
+    que_expand_size:u64,
+    que_disk_writers:u8,
     signal:Arc<Mutex<Signal>>
 ){
 
     let mut receiver = receiver;
     let mut que:Que;
     match Que::new(Config::new(
-        que_path,
-        que_frame_size,
+        que_files,
+        que_min_size,
+        que_expand_size,
         que_disk_writers
     )).await{
         Ok(v)=>{que = v;},
@@ -45,8 +47,12 @@ pub async fn init(
                 match message{
                     QueMessage::Add(add)=>{
                         match que.add(add.body).await{
-                            Ok(_)=>{
-                                Signal::ok(add.signal).await;
+                            Ok(mut que_response)=>{
+                                if que_response.check().await{
+                                    Signal::ok(add.signal).await;
+                                } else {
+                                    Signal::error(add.signal).await;
+                                }
                             },
                             Err(_)=>{
                                 Signal::error(add.signal).await;
@@ -54,31 +60,50 @@ pub async fn init(
                         }
                     },
                     QueMessage::Get(get)=>{
-                        match que.get().await{
-                            Ok(v)=>{
-                                SignalData::update(get.signal,v.1,v.0).await;
+                        match que.next().await{
+                            Ok(mut que_response)=>{
+                                if !que_response.check().await{
+                                    SignalData::error(get.signal).await;
+                                } else {
+                                    match que_response.data().await{
+                                        Some((value,pointer))=>{
+                                            SignalData::update(get.signal,pointer,value).await;
+                                        },
+                                        None=>{
+                                            SignalData::error(get.signal).await;
+                                        }
+                                    }
+                                }
                             },
                             Err(_)=>{
                                 SignalData::error(get.signal).await;
                             }
                         }
-                    },QueMessage::Remove(get)=>{
-                        match que.remove(get.index).await{
-                            Ok(_)=>{
-                                Signal::ok(get.signal).await;
+                    },QueMessage::Remove(remove)=>{
+                        match que.remove(remove.pointer).await{
+                            Ok(mut que_response)=>{
+                                if que_response.check().await{
+                                    Signal::ok(remove.signal).await;
+                                } else {
+                                    Signal::error(remove.signal).await;
+                                }
                             },
                             Err(_)=>{
-                                Signal::error(get.signal).await;
+                                Signal::error(remove.signal).await;
                             }
                         }
                     },
-                    QueMessage::Reset(get)=>{
-                        match que.reset(get.index).await{
-                            Ok(_)=>{
-                                Signal::ok(get.signal).await;
+                    QueMessage::Reset(reset)=>{
+                        match que.reset(reset.pointer).await{
+                            Ok(mut que_response)=>{
+                                if que_response.check().await{
+                                    Signal::ok(reset.signal).await;
+                                } else {
+                                    Signal::error(reset.signal).await;
+                                }
                             },
                             Err(_)=>{
-                                Signal::error(get.signal).await;
+                                Signal::error(reset.signal).await;
                             }
                         }
                     }

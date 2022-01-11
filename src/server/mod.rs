@@ -32,10 +32,11 @@ pub const DATA_START:&'static str = "354 Enter mail, end with \".\" on a line by
 pub const BAD_SEQUENCE:&'static str = "503 Bad sequence of commands\r\n";
 pub const USER_NOT_FOUND:&'static str = "551 Intended recipient mailbox isn't available on the receiving server\r\n";
 pub const DOWN:&'static str = "451 Requested action aborted: local error in processing\r\n";
+pub const NO_RECEIVER_FOUND:&'static str = "554 no valid recipients given";
 
-// pub const UNHANDLED:&'static str = "502 Command not implemented\r\n";
+pub const UNHANDLED:&'static str = "502 Command not implemented\r\n";
 // pub const BAD_SYNTAX:&'static str = "500 Syntax error, command unrecognised\r\n";
-// pub const BAD_PARAMS:&'static str = "501 Syntax error in parameters or arguments\r\n";
+pub const BAD_PARAMS:&'static str = "501 Syntax error in parameters or arguments\r\n";
 
 pub async fn init<F,T,K,V>(
     conf:ServerConfig,
@@ -124,8 +125,9 @@ where
     TokioSpawn(async move {
         que::init(
             que_receiver,
-            conf_clone.que_path.clone(),
-            conf_clone.que_frame_size.clone(),
+            conf_clone.que_files.clone(),
+            conf_clone.que_min_size.clone(),
+            conf_clone.que_expand_size.clone(),
             conf_clone.que_disk_writers.clone(),
             move_que_signal
         ).await;

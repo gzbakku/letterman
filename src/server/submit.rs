@@ -129,7 +129,7 @@ where
                 if SignalData::check(&signal).await{
 
                     let data = SignalData::data(signal).await;
-                    let data_index = data.index.clone();
+                    let data_pointer = data.pointer.clone();
                     match parse_object(data){
                         Ok((data,files))=>{
 
@@ -142,7 +142,7 @@ where
                                     match sender.send(QueMessage::Remove(
                                         QueRemoveMessage{
                                             signal:signal,
-                                            index:data_index
+                                            pointer:data_pointer
                                         }
                                     )).await{Ok(_)=>{
                                         sleeper.notified().await;
@@ -153,7 +153,7 @@ where
                                     match sender.send(QueMessage::Reset(
                                         QueResetMessage{
                                             signal:signal,
-                                            index:data_index
+                                            pointer:data_pointer
                                         }
                                     )).await{Ok(_)=>{
                                         sleeper.notified().await;
@@ -168,7 +168,7 @@ where
                             match sender.send(QueMessage::Remove(
                                 QueRemoveMessage{
                                     signal:signal,
-                                    index:data_index
+                                    pointer:data_pointer
                                 }
                             )).await{Ok(_)=>{},Err(_)=>{}}
                             // sleep(Duration::from_millis(1000)).await;
@@ -201,7 +201,7 @@ fn parse_object(data:SignalDataHolder)->Result<(JsonValue,Vec<String>),&'static 
         }
     }
 
-    let as_json:JsonValue;
+    let mut as_json:JsonValue;
     match JsonParse(&as_string){
         Ok(v)=>{
             as_json = v;
@@ -242,13 +242,14 @@ fn parse_object(data:SignalDataHolder)->Result<(JsonValue,Vec<String>),&'static 
     // }
 
     if !as_json["id"].is_string(){return Err("no-id");}
-    if !as_json["from"].is_string(){return Err("no-from");}
-    if !as_json["to"].is_string(){return Err("no-to");}
+    if !as_json["sender"].is_string(){return Err("no-sender");}
+    if !as_json["receivers"].is_array(){return Err("no-receivers");}
     if !as_json["headers"].is_object(){return Err("no-headers");}
     if !as_json["body"].is_array(){return Err("no-body");}
     if !as_json["attachments"].is_array(){return Err("no-attachments");}
 
     let mut file_names:Vec<String> = vec![];
+    let mut collect_body = Vec::new();
     for item in as_json["body"].members(){
         if !item["type"].is_string(){return Err("no-type");}
         if !item.has_key("value"){return Err("no-value");}
@@ -261,12 +262,18 @@ fn parse_object(data:SignalDataHolder)->Result<(JsonValue,Vec<String>),&'static 
                         },
                         None=>{return Err("not_found-file_name");}
                     }
+                } else {
+                    collect_body.push(item.clone());
+                    // println!("{:?}",item);
                 }
             },
             None=>{return Err("not_found-type");}
         }
     }
 
+    as_json["body"] = JsonValue::Array(collect_body);
+
+    
     for item in as_json["attachments"].members(){
         if !item["type"].is_string(){return Err("no-type");}
         if !item["value"].is_object(){return Err("no-value");}

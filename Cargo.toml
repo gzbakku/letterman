@@ -1,6 +1,6 @@
 [package]
 name = "letterman"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["gzbakku <gzbakku@gmail.com>"]
 edition = "2018"
 
@@ -32,7 +32,7 @@ regex = "1.5.4"
 dns-lookup = "1.0.8"
 tokio_spf_validator = "1.0.3"
 letterman_email_body_parser = "1.0.3"
-rustque = "1.0.3"
+rustque = "1.0.6"
 json = "0.12.4"
 serde = "1.0.131"
 rand = "0.8.4"

@@ -127,7 +127,6 @@ pub async fn secure_send(connected:&mut Connected,m:String) -> Result<(),&'stati
 
 pub async fn secure_read(connected:&mut Connected) -> Result<READ,&'static str> {
 
-
     let mut collect = Vec::new();
     let mut buff = [0; 5000];
 

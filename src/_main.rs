@@ -5,6 +5,7 @@ use flume::unbounded as FlumeChannel;
 use json::JsonValue;
 use flume::Sender as FlumeSender;
 use std::time::Instant;
+use tokio::spawn as TokioSpawn;
 
 mod common;
 mod client;
@@ -16,6 +17,7 @@ mod io;
 
 const SEND_TO_DKIMVALIDATOR:bool = false;
 const SEND_TO_LOCALHOST:bool = true;
+const SEND_TO_ANYONE:bool = false;
 
 #[tokio::main]
 async fn main(){
@@ -26,7 +28,18 @@ async fn main(){
 
     for cmd in cmd_line{
         if cmd.contains("--client"){
-            start_async_client().await;
+            let mut collect = Vec::new();
+            for _ in 0..1{
+                collect.push(TokioSpawn(async move {
+                    start_async_client().await;
+                }));
+            }
+            for i in collect{
+                match i.await{
+                    Ok(_)=>{},
+                    Err(_)=>{}
+                }
+            }
         } else
         if cmd.contains("--server"){
             start_async_server().await;
@@ -86,6 +99,19 @@ async fn start_async_client() {
                 return;
             }
         }
+    } else if SEND_TO_ANYONE {
+        match Connection::new(
+            String::from("xijih27584@veb34.com"),
+            String::from("mailcenter.herokuapp.com"),
+            key,
+            String::from("dkim"),
+            String::from("silvergram.in"),
+        ){
+            Ok(v)=>{conn = v;},
+            Err(_)=>{
+                return;
+            }
+        }
     } else {
         return;
     }
@@ -101,7 +127,7 @@ async fn start_async_client() {
     if true{
         match conn.send().await{
             Ok(_v)=>{
-                println!("send successfull  : {:?} {:?}",_v.0,_v.1);
+                println!("send successfull  : {:?} {:?}",_v.0.len(),_v.1);
             },
             Err(_e)=>{
                 println!("send failed : {:?}",_e);
@@ -125,8 +151,11 @@ fn build_mail_new(tracking_id:String) -> client::Email{
 
     if SEND_TO_DKIMVALIDATOR{
         email.to(String::from("yPEHwb2zlYrYM9@dkimvalidator.com"));
+        email.receiver(String::from("yPEHwb2zlYrYM9@dkimvalidator.com"));
     } else if SEND_TO_LOCALHOST {
         email.to(String::from("gzbakku@localhost"));
+        email.receiver(String::from("gzbakku1@localhost"));
+        email.receiver(String::from("gzbakku2@localhost"));
     }
     
     email.subject(String::from("hello world"));
@@ -136,11 +165,11 @@ fn build_mail_new(tracking_id:String) -> client::Email{
         email.html(String::from("<html> <header><title>This is title</title></header> <body> <h1>Hello world</h1> </body> </html>"));
     }
 
-    if 1 == 1 {
+    if 1 == 0 {
         email.attach("d://workstation/expo/rust/letterman/letterman/drink.png".to_string());
     }
 
-    if 1 == 1 {
+    if 1 == 0 {
         let base64_data = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAAdgAAAHYBTnsmCAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAJfSURBVDiNpZLdS1MBGMafc87OPtx23M7Opse2hDb8mB+ZLRC70IhBd4GSJAUVYnXVXyBBEHST1xZRmUgXgdHFiC6KwixCyjLDmTKx4cm17Ux2trntnO3YTYrOFYTP3fvwvj8eeF5gn6L+4pPtza6bvJ3xrcWkd/9NrXXaep49vCKP3Dqbomn68Cl/w52BC8emJsYvdpTuasoB0tl88Gngc0TK5GRFUSrP9fou9fZ5tQ8eTY8COAIg+0+AKKaDYxPTbQAUAAeK+U0SKoGVlXXDH29bxM6Bc/B3K4zWWlUtZIuKnC0UCxsESSotddZBzyEXNbcQTi2GxMfxqHC1XAJSpzd1eVs76g0VZtC0dleqaE4G43CYdcLbbgAkALUUoArhpf4ui+Wj286TyXwOObUIANCTFCp1OoRiEVUIL/VvHW8DWI4fZBh2QJLEF7yd/9njO+7UECTYCiMAILGRQWFTxfinKYHlqk8zjG1EkhL3E/G1exqLveqat7njRo3LY1lbDfli+bQa2chg6ZeA+UQcAIEmloOnqgbRXL66qbVziHe6qdXwYv383Ac9yZisgzUujwUATJUspXewtH94CG5vI2aTEmaTSbibGuEfHoLBztJmhqUAwHmwzsIw7GXN+np89OXzsQaG4VoUOZdWOFtbKjBpO2ricLvLDwBwG21IBSaxHFoWgwnxC63VmyQpPqcUisFdNQLAyfrm133tnd3l/uPJzPs3r75/O7HT2/NIZkpbrCUIGEtqTMt5GAhSLd3fA5gRQmd+1LVcD0uCOyRGrVt+RpGlwMLX8+WS7Uu/AV/Q4yOF5rS7AAAAAElFTkSuQmCC".to_string();
         email.attach_base64("drink_1.png".to_string(),base64_data,"image/png".to_string());
     }
@@ -162,9 +191,12 @@ async fn start_async_server(){
         format!("../secret/end.cert"),
         format!("../secret/end.rsa"),
         100_000,
-        String::from("../letter_man_que/que/que.akku"),
+        vec![
+            String::from("../letter_man_que/que/que_1.rustque")
+        ],
         5_000_000,
-        5,
+        5_000_000,
+        100,
         String::from("../letter_man_que/email_files/"),
         1,
         false,false,true
@@ -199,6 +231,8 @@ async fn start_async_server(){
 
 async fn process_email(_i:ProcessMail,_sender:FlumeSender<JsonValue>) -> Result<(),()>{
 
+    // println!("{:?}",_i);
+
     // println!("{:?}",_i.files);
 
     for i in _i.files.iter(){
@@ -219,6 +253,14 @@ async fn process_email(_i:ProcessMail,_sender:FlumeSender<JsonValue>) -> Result<
 }
 
 async fn check_email(_i:CheckMail,_sender:FlumeSender<JsonValue>) -> Result<bool,()>{
+
+    // println!("{:?}",_i);
+
+    if true {
+        if _i.to == "gzbakku2@localhost"{
+            return Ok(false);
+        }
+    }
 
     Ok(true)
 

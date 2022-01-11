@@ -14,6 +14,7 @@ pub struct Action {
 
 #[derive(Debug,Clone)]
 pub struct Email {
+    pub receivers:Vec<String>,
     pub tracking_id:String,
     pub unique_id:String,
     pub private_key:String,
@@ -37,6 +38,7 @@ impl Email{
     #[allow(dead_code)]
     pub fn new() -> Email{
         Email{
+            receivers:Vec::new(),
             tracking_id:String::new(),
             unique_id:String::new(),
             private_key:String::new(),
@@ -64,6 +66,8 @@ impl Email{
     pub fn server_name(&mut self,v:String){self.server_name = v;}
     #[allow(dead_code)]
     pub fn name(&mut self,v:String){self.name = v;}
+    #[allow(dead_code)]
+    pub fn receiver(&mut self,v:String){self.receivers.push(v);}
     #[allow(dead_code)]
     pub fn to(&mut self,v:String){self.to = v;}
     #[allow(dead_code)]

@@ -7,6 +7,7 @@ use tokio_spf_validator::SpfQueryResult;
 use tokio::sync::{Mutex,Notify};
 use json::JsonValue;
 use crate::io::{ensure_file_dir,ensure_dir};
+use rustque::Pointer;
 
 #[derive(Debug,Clone)]
 pub struct CheckMail{
@@ -32,9 +33,10 @@ pub struct ServerConfig
     pub validate_rdns:bool,
     pub validate_spf:bool,
     pub validate_dkim:bool,
-    pub que_path:String,
-    pub que_frame_size:u64,
-    pub que_disk_writers:u64,
+    pub que_files:Vec<String>,
+    pub que_min_size:u64,
+    pub que_expand_size:u64,
+    pub que_disk_writers:u8,
     pub attachment_storage_dir:String,
     pub no_of_submitters:u16
 }
@@ -46,9 +48,10 @@ impl ServerConfig{
         cert_path:String,
         key_path:String,
         max_email_size:u128,
-        que_path:String,
-        que_frame_size:u64,
-        que_disk_writers:u64,
+        que_files:Vec<String>,
+        que_min_size:u64,
+        que_expand_size:u64,
+        que_disk_writers:u8,
         attachment_storage_dir:String,
         no_of_submitters:u16,
         validate_rdns:bool,
@@ -62,9 +65,11 @@ impl ServerConfig{
             Err(_)=>{return Err("failed-init-EmailBodyParserConfig");}
         }
 
-        match ensure_file_dir(que_path.clone()).await{
-            Ok(_)=>{},
-            Err(_)=>{return Err("failed-ensure-path-");}
+        for path in que_files.iter(){
+            match ensure_file_dir(path.clone()).await{
+                Ok(_)=>{},
+                Err(_)=>{return Err("failed-ensure-path-");}
+            }
         }
         match ensure_dir(attachment_storage_dir.clone()).await{
             Ok(_)=>{},
@@ -81,8 +86,9 @@ impl ServerConfig{
             validate_rdns:validate_rdns,
             validate_spf:validate_spf,
             validate_dkim:validate_dkim,
-            que_path:que_path,
-            que_frame_size:que_frame_size,
+            que_files:que_files,
+            que_min_size:que_min_size,
+            que_expand_size:que_expand_size,
             que_disk_writers:que_disk_writers,
             attachment_storage_dir:attachment_storage_dir,
             no_of_submitters:no_of_submitters
@@ -153,8 +159,14 @@ impl ServerRegex{
             Err(_)=>{return Err("failed-init-ehlo_regex");}
         }
 
+        //r#"([\w\d_=+/*!@#$%^&*()-|]+)@([\w\d.]+)"#
+
+        //([\w\d\s]+)*[:<]*([\s\w\d]*)(([\w\d_=+/*!@#$%^&*()-|]+)@([\w\d.-]+))>*
+
+        //r#"([\w\d\s]+)*[:\s<]*(([\w\d_=+/*!@#$%^&*()-|]+)@([\w\d.-]+))>*"#
+
         let email_regex:Regex;
-        match Regex::new(r#"([\w\d_=+/*!@#$%^&*()-|]+)@([\w\d.]+)"#){
+        match Regex::new(r#"<*(([^:\s][\w\d_=+/*!@#$%^&*()-|]+)@([\w\d.-]+))>*"#){
             Ok(v)=>{email_regex = v;},
             Err(_)=>{
                 return Err("failed-regex-from_regex");
@@ -183,13 +195,13 @@ pub struct QueGetMessage{
 #[derive(Debug)]
 pub struct QueRemoveMessage{
     pub signal:Arc<Mutex<Signal>>,
-    pub index:u64
+    pub pointer:Pointer
 }
 
 #[derive(Debug)]
 pub struct QueResetMessage{
     pub signal:Arc<Mutex<Signal>>,
-    pub index:u64
+    pub pointer:Pointer
 }
 
 #[derive(Debug)]
@@ -204,8 +216,8 @@ pub enum QueMessage{
 pub struct Email{
     pub spf:SpfQueryResult,
     pub status:u8,
-    pub from:String,
-    pub to:String
+    pub sender:String,
+    pub receivers:Vec<String>
 }
 
 impl Email{
@@ -213,15 +225,18 @@ impl Email{
         Email{
             spf:SpfQueryResult::Pass,
             status:0,
-            from:String::new(),
-            to:String::new()
+            sender:String::new(),
+            receivers:Vec::new()
         }
     }
     pub fn reset(&mut self){
         self.spf = SpfQueryResult::Pass;
         self.status = 0;
-        self.from.clear();
-        self.to.clear();
+        self.sender.clear();
+        self.receivers.clear();
+    }
+    pub fn check(&mut self)->bool{
+        if self.sender.len() ==0 || self.receivers.len() == 0{return false;} else {return true;}
     }
     pub fn flush(&mut self)->Email{
         let hold = self.clone();
@@ -271,16 +286,17 @@ impl Signal{
 
 #[derive(Clone,Debug,Default)]
 pub struct SignalDataHolder{
-    pub index:u64,
+    pub pointer:Pointer,
     pub data:Vec<u8>
 }
 
 impl SignalDataHolder{
     pub fn new()->SignalDataHolder{
         SignalDataHolder::default()
+
     }
-    pub fn update(&mut self,index:u64,data:Vec<u8>){
-        self.index = index;
+    pub fn update(&mut self,pointer:Pointer,data:Vec<u8>){
+        self.pointer = pointer;
         self.data = data;
     }
 }
@@ -316,10 +332,10 @@ impl SignalData{
         let lock = hold.lock().await;
         return lock.data.clone();
     }
-    pub async fn update(hold:Arc<Mutex<SignalData>>,index:u64,data:Vec<u8>){
+    pub async fn update(hold:Arc<Mutex<SignalData>>,pointer:Pointer,data:Vec<u8>){
         let mut lock = hold.lock().await;
         lock.result = true;
-        lock.data.update(index,data);
+        lock.data.update(pointer,data);
         lock.waker.notify_one();
     }
     pub async fn error(hold:Arc<Mutex<SignalData>>){

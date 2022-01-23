@@ -4,7 +4,7 @@ version = "0.1.2"
 authors = ["gzbakku <gzbakku@gmail.com>"]
 edition = "2018"
 
-description = "this is a light weight grounds up email lib for rust."
+description = "this is a grounds up super fast and light weight smtp client and server library you can integrate it into a rust app to manage email transfer natively."
 homepage = "https://github.com/gzbakku/fdb/tree/master/postoffice"
 repository = "https://github.com/gzbakku/fdb/tree/master/postoffice"
 readme = "README.md"

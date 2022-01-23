@@ -420,9 +420,9 @@ dependencies = [
 
 [[package]]
 name = "gzb_binary_69"
-version = "0.2.0"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a58e96806485347feca3828fa90c2e0a65c369ca5b6b0efdd52cc366bb446f2"
+checksum = "4da9308ad16d4d3fd6ffd07d9c5bdb887d6baad79724d000bcc12815dd5e668e"
 dependencies = [
  "byteorder",
 ]
@@ -523,7 +523,7 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "letterman"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "base64 0.13.0",
  "chrono",
@@ -1060,9 +1060,9 @@ dependencies = [
 
 [[package]]
 name = "rustque"
-version = "1.0.6"
+version = "1.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea7445ba62d2a0308a762352e257dbbbfeac87f6f6bfb7bdaafc1a1ec305305d"
+checksum = "f0104d8ab08f87bba052064f26c3ee45f3918c0b4e636726e9b50db8bc33f85a"
 dependencies = [
  "byteorder",
  "crossbeam",

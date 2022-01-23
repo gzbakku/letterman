@@ -153,8 +153,7 @@ fn build_mail_new(tracking_id:String) -> client::Email{
         email.to(String::from("yPEHwb2zlYrYM9@dkimvalidator.com"));
         email.receiver(String::from("yPEHwb2zlYrYM9@dkimvalidator.com"));
     } else if SEND_TO_LOCALHOST {
-        email.to(String::from("gzbakku1@localhost"));
-        email.to(String::from("gzbakku2@localhost"));
+        email.to(String::from("gzbakku@localhost"));
         email.receiver(String::from("gzbakku1@localhost"));
         email.receiver(String::from("gzbakku2@localhost"));
     }

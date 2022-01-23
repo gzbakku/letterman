@@ -21,7 +21,7 @@ pub struct Email {
     pub server_name:String,
     pub name:String,
     pub from:String,
-    pub to:Vec<String>,
+    pub to:String,
     pub cc:String,
     pub bcc:String,
     pub subject:String,
@@ -45,7 +45,7 @@ impl Email{
             server_name:String::new(),
             name:String::new(),
             from:String::new(),
-            to:Vec::new(),
+            to:String::new(),
             cc:String::new(),
             bcc:String::new(),
             subject:String::new(),
@@ -69,7 +69,7 @@ impl Email{
     #[allow(dead_code)]
     pub fn receiver(&mut self,v:String){self.receivers.push(v);}
     #[allow(dead_code)]
-    pub fn to(&mut self,v:String){self.to.push(v);}
+    pub fn to(&mut self,v:String){self.to = v;}
     #[allow(dead_code)]
     pub fn from(&mut self,v:String){self.from = v;}
     #[allow(dead_code)]

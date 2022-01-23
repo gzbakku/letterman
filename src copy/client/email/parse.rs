@@ -46,23 +46,14 @@ pub async fn init(email:Email,conn:&Connection)->Result<(Vec<String>,String,u64)
         dkim_headers.push_str(&format!("message-id:<{}>\r\n",email.unique_id));
     }
 
-    let mut to_value = String::new();
-    for i in email.to{
-        if to_value.len() == 0{
-            to_value += &format!("{}",i);
-        } else {
-            to_value += &format!(", {}",i);
-        }
-    }
-
     headers.push_str(&format!("Date: {}\r\n",email.date));
     headers.push_str(&format!("Subject: {}\r\n",email.subject));
-    headers.push_str(&format!("To: {}\r\n",to_value));
+    headers.push_str(&format!("To: {}\r\n",email.to));
     headers.push_str(&format!("DKIM-Signature: ===dkim===\r\n"));
 
     dkim_headers.push_str(&format!("date:{}\r\n",email.date));
     dkim_headers.push_str(&format!("subject:{}\r\n",email.subject));
-    dkim_headers.push_str(&format!("to:{}\r\n",to_value));
+    dkim_headers.push_str(&format!("to:{}\r\n",email.to));
 
     if email.body.len() == 0 && email.html.len() == 0{
         return Err("invalid_email_body");

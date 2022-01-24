@@ -153,7 +153,7 @@ async fn send_emails(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&
 
 pub async fn process_mail(connection:&mut Connected,commands:&mut Vec<String>,features:&Features)->Result<(),&'static str>{
 
-    println!(">>> process_mail");
+    // println!(">>> process_mail");
 
     let body:String;
     match commands.pop(){

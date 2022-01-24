@@ -1060,9 +1060,9 @@ dependencies = [
 
 [[package]]
 name = "rustque"
-version = "1.0.8"
+version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0104d8ab08f87bba052064f26c3ee45f3918c0b4e636726e9b50db8bc33f85a"
+checksum = "d8c57f8529a55398f61b8b4c7bf8cafea83e9fae8e7a3fb45c834b8d555ebd96"
 dependencies = [
  "byteorder",
  "crossbeam",

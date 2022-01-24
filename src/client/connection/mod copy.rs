@@ -208,7 +208,7 @@ async fn build(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&'stati
 
 pub async fn process_mail(connection:&mut Connected,commands:&mut Vec<String>,features:&Features)->Result<(),&'static str>{
 
-    println!(">>> process_mail");
+    // println!(">>> process_mail");
 
     loop{
 

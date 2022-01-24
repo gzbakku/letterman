@@ -200,10 +200,6 @@ pub async fn process_mail(connection:&mut Connected,commands:&mut Vec<String>,fe
 
     }
 
-    // println!(">>> commands sent");
-
-    // println!("batch_commands_len : {:?}",batch_commands_len);
-
     if features.pipeline{
         let mut index = 0;
         let mut to_command = 0;

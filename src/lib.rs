@@ -5,7 +5,7 @@
 
 
 mod common;
-mod io;
+pub mod io;
 
 ///Smtp client provides smtp pipeline, spf validation, dkim validation and rdns extensions.Multiple emails can be sent over one connection but the domain for sender must be the same on each connection type.
 ///```

@@ -166,7 +166,7 @@ fn build_mail_new(tracking_id:String) -> client::Email{
         email.html(String::from("<html> <header><title>This is title</title></header> <body> <h1>Hello world</h1> </body> </html>"));
     }
 
-    if 1 == 0 {
+    if 1 == 1 {
         email.attach("d://workstation/expo/rust/letterman/letterman/drink.png".to_string());
     }
 

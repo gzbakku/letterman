@@ -59,6 +59,7 @@ async fn start_async_client() {
     //d://workstation/expo/rust/letterman/letterman/keys/private.key
 
     let key:String;
+    //"../secret/private.key"
     match client::read_key("../secret/private.key".to_string()).await{
         Ok(v)=>{
             key = v;
@@ -189,8 +190,11 @@ async fn start_async_server(){
     match ServerConfig::new(
         vec![587,2525],
         String::from("silversender.com"),
-        format!("../secret/end.cert"),
-        format!("../secret/end.rsa"),
+        // format!("../secret/end.cert"),
+        // format!("../secret/end.rsa"),
+        format!("../secret/smtp_gzbemail_xyz.cert"),
+        format!("../secret/smtp_gzbemail_xyz.private_key"),
+        // format!("../secret/end.rsa"),
         100_000,
         vec![
             String::from("../letter_man_que/que/que_1.rustque")

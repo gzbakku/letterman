@@ -523,7 +523,7 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "letterman"
-version = "0.1.7"
+version = "0.1.9"
 dependencies = [
  "base64 0.13.0",
  "chrono",
@@ -1060,9 +1060,9 @@ dependencies = [
 
 [[package]]
 name = "rustque"
-version = "1.0.9"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8c57f8529a55398f61b8b4c7bf8cafea83e9fae8e7a3fb45c834b8d555ebd96"
+checksum = "2a21b4e897ba933abeeedaa69c7a6bc09278146f3c48e9bdd4bacd1e9c7bc4e3"
 dependencies = [
  "byteorder",
  "crossbeam",

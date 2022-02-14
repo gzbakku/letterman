@@ -15,8 +15,8 @@ mod io;
 // mod client_old;
 // mod io;
 
-const SEND_TO_DKIMVALIDATOR:bool = false;
-const SEND_TO_LOCALHOST:bool = true;
+const SEND_TO_DKIMVALIDATOR:bool = true;
+const SEND_TO_LOCALHOST:bool = false;
 const SEND_TO_ANYONE:bool = false;
 
 #[tokio::main]
@@ -46,6 +46,8 @@ async fn main(){
         }
     }
 
+    start_async_client().await;
+
 }
 
 //---------------------------------------
@@ -60,7 +62,7 @@ async fn start_async_client() {
 
     let key:String;
     //"../secret/private.key"
-    match client::read_key("../secret/private.key".to_string()).await{
+    match client::read_key("../secret/gzbemail.private_key".to_string()).await{
         Ok(v)=>{
             key = v;
         },
@@ -69,6 +71,8 @@ async fn start_async_client() {
             return;
         }
     }
+
+    let domain = format!("gzbemail.xyz");
 
     // println!("{:?}",key);
 
@@ -79,7 +83,7 @@ async fn start_async_client() {
             String::from("mailcenter.herokuapp.com"),
             key,
             String::from("dkim"),
-            String::from("silvergram.in"),
+            domain
         ){
             Ok(v)=>{conn = v;},
             Err(_)=>{
@@ -93,7 +97,7 @@ async fn start_async_client() {
             String::from("mailcenter.herokuapp.com"),
             key,
             String::from("dkim"),
-            String::from("silvergram.in"),
+            domain
         ){
             Ok(v)=>{conn = v;},
             Err(_)=>{
@@ -106,7 +110,7 @@ async fn start_async_client() {
             String::from("mailcenter.herokuapp.com"),
             key,
             String::from("dkim"),
-            String::from("silvergram.in"),
+            domain
         ){
             Ok(v)=>{conn = v;},
             Err(_)=>{
@@ -145,14 +149,15 @@ fn build_mail_new(tracking_id:String) -> client::Email{
     let mut email = client::Email::new();
 
     email.server_name(String::from("mailcenter.herokuapp.com"));
-    email.name(String::from("gzbakku"));
-    email.from(String::from("akku@silvergram.in"));
+    email.name(String::from("akku"));
+    email.from(String::from("akku@gzbemail.xyz"));
     email.tracking_id(tracking_id);
     // email.to(String::from("gzbakku@gmail.com"));
 
     if SEND_TO_DKIMVALIDATOR{
-        email.to(String::from("yPEHwb2zlYrYM9@dkimvalidator.com"));
-        email.receiver(String::from("yPEHwb2zlYrYM9@dkimvalidator.com"));
+        println!("where");
+        email.to(String::from("nwj6xp9eqau0wl@dkimvalidator.com"));
+        email.receiver(String::from("nwj6xp9eqau0wl@dkimvalidator.com"));
     } else if SEND_TO_LOCALHOST {
         email.to(String::from("gzbakku1@localhost"));
         email.to(String::from("gzbakku2@localhost"));

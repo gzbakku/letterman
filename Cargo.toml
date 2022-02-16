@@ -10,7 +10,7 @@ repository = "https://github.com/gzbakku/letterman"
 readme = "README.md"
 keywords = ["smtp","server","client","smtps","esmtp"]
 categories = ["web-programming::http-server", "web-programming::http-client", "api-bindings","web-programming::websocket"]
-license-file = "License.md"
+license="MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

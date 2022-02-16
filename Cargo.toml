@@ -1,12 +1,12 @@
 [package]
 name = "letterman"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["gzbakku <gzbakku@gmail.com>"]
 edition = "2018"
 
 description = "this is a grounds up super fast and light weight smtp client and server library you can integrate it into a rust app to manage email transfer natively."
-homepage = "https://github.com/gzbakku/fdb/tree/master/postoffice"
-repository = "https://github.com/gzbakku/fdb/tree/master/postoffice"
+homepage = "https://github.com/gzbakku/letterman"
+repository = "https://github.com/gzbakku/letterman"
 readme = "README.md"
 keywords = ["smtp","server","client","smtps","esmtp"]
 categories = ["web-programming::http-server", "web-programming::http-client", "api-bindings","web-programming::websocket"]

@@ -8,14 +8,18 @@ use tokio::net::TcpStream;
 use native_tls::TlsConnector;
 use tokio_native_tls::TlsConnector as TokioNativeTlsConnector;
 use tokio_native_tls::TlsStream;
+use tokio::time::timeout;
+use std::time::Duration;
 
-const PORTS: &'static [u32] = &[587,2525,25];
+const PORTS: &'static [u32] = &[25,465,587,2525];
 
 pub enum Connected{
     Secure(TlsStream<TcpStream>),InSecure(TcpStream)
 }
 
 pub async fn init(connection:&mut Connection)->Result<(Connected,u32),&'static str>{
+
+    // println!("### called-init-connect");
 
     let mut mx_records:Vec<String>;
     match get_mx_records(connection.domain.to_string()).await{
@@ -24,6 +28,8 @@ pub async fn init(connection:&mut Connection)->Result<(Connected,u32),&'static s
             return Err("failed-get_mx_records");
         }
     }
+
+    // println!("### get_mx_records-init-connect");
 
     loop{
         if mx_records.len() == 0{
@@ -37,6 +43,7 @@ pub async fn init(connection:&mut Connection)->Result<(Connected,u32),&'static s
                     return Ok((v,port.clone()));
                 },
                 Err(_e)=>{
+                    println!("### !!! start_connection-connect => {:?}",_e);
                     // println!("{} {} => {:?}",&domain, &port, _e);
                 }
             }
@@ -47,23 +54,54 @@ pub async fn init(connection:&mut Connection)->Result<(Connected,u32),&'static s
 
 async fn start_connection(domain:String,port:&u32)->Result<Connected,&'static str>{
 
+    // println!("### called-start_connection-connect");
+
     let address = format!("{}:{}",domain,port);
+
+    // println!("### called-start_connection-connect : {:?}",address);
+
     let stream:TcpStream;
-    match TcpStream::connect(&address).await{
-        Ok(v)=>{stream = v;},
-        Err(_)=>{
-            return Err("failed-start-TcpStream");
+
+    match timeout(Duration::from_secs(5), TcpStream::connect(&address)).await{
+        Ok(v)=>{
+            match v{
+                Ok(k)=>{
+                    stream = k;
+                },
+                Err(_e)=>{
+                    println!("### !!!! faileover-TcpStream-start_connection-connect => {:?}",_e);
+                    return Err("failed-start-TcpStream");
+                }
+            }
+        },
+        Err(_e)=>{
+            println!("### !!! timeout-TcpStream-start_connection-connect => {:?}",_e);
+            return Err("timeout-start-TcpStream");
         }
     }
 
+    // match TcpStream::connect(&address).await{
+    //     Ok(v)=>{stream = v;},
+    //     Err(_e)=>{
+    //         println!("### !!!! TcpStream-start_connection-connect => {:?}",_e);
+    //         return Err("failed-start-TcpStream");
+    //     }
+    // }
+
+    // println!("### TcpStream-start_connection-connect");
+
     match TlsConnector::builder()
-    .danger_accept_invalid_certs(true)
+    // .danger_accept_invalid_certs(true)
     .build()
     {
         Ok(base)=>{
+
+            // println!("### TlsConnector-start_connection-connect");
+
             let connector = TokioNativeTlsConnector::from(base);
             match connector.connect(&domain, stream).await{
                 Ok(s)=>{
+                    // println!("### TokioNativeTlsConnector-start_connection-connect");
                     return Ok(Connected::Secure(s));
                 },
                 Err(_e)=>{
@@ -79,7 +117,7 @@ async fn start_connection(domain:String,port:&u32)->Result<Connected,&'static st
             }
         },
         Err(_)=>{
-            println!("tls connection failed");
+            // println!("tls connection failed");
             return Err("failed-start-tls_connector");
         }
     }

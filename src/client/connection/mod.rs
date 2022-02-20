@@ -76,6 +76,8 @@ impl Connection{
 
 async fn send_emails(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&'static str>{
 
+    // println!("### called-send_emails");
+
     let mut parsed_mails:Vec<(Vec<String>,String,u64)> = Vec::new();
     loop{
         if config.emails.len() == 0{
@@ -93,6 +95,8 @@ async fn send_emails(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&
         }
     }
 
+    // println!("### parsed-send_emails");
+
     let mut connection:Connected;
     let features:Features;
     match build_smtp_connection(config).await{
@@ -105,6 +109,8 @@ async fn send_emails(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&
         }
     }
 
+    // println!("### connected-send_emails");
+
     if features.limit_size{
         for (_,_,size) in parsed_mails.iter(){
             if size > &features.size{
@@ -112,6 +118,10 @@ async fn send_emails(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&
             }
         }
     }
+
+    // println!("### checked-send_emails");
+
+    // println!("### features : {:?}",features);
 
     //parse email
     let mut failed = Vec::new();
@@ -126,7 +136,7 @@ async fn send_emails(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&
                 successfull.push(tracking_id);
             },
             Err(_e)=>{
-                println!("!!! send_mail_error : {:?}",_e);
+                // println!("### send_mail_error : {:?}",_e);
                 failed.push(tracking_id);
                 match io::secure_send_with_response(&mut connection,"RSET\r\n".to_string()).await{
                     Ok(response)=>{
@@ -153,7 +163,7 @@ async fn send_emails(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&
 
 pub async fn process_mail(connection:&mut Connected,commands:&mut Vec<String>,features:&Features)->Result<(),&'static str>{
 
-    // println!(">>> process_mail");
+    // println!("### process_mail");
 
     let body:String;
     match commands.pop(){
@@ -173,26 +183,26 @@ pub async fn process_mail(connection:&mut Connected,commands:&mut Vec<String>,fe
         match io::secure_send(connection,command).await{
             Ok(_)=>{},
             Err(_)=>{
-                // println!("!!! failed-email_command-send");
+                println!("### failed-email_command-send");
                 return Err("connection_closed-write");
             }
         }
 
         // println!("{:?}",command);
 
-        // println!(">>> command_sent");
+        // println!("### command_sent");
         
         if !features.pipeline{
             match io::secure_read(connection).await{
                 Ok(response)=>{
-                    // println!(">>> response : {:?}",response);
+                    // println!("### response : {:?}",response);
                     if !response.result{
-                        // println!(">>> response : {:?}",response);
+                        println!("### non-pipeline response : {:?}",response);
                         return Err("smtp_error");
                     }
                 },
                 Err(_e)=>{
-                    println!("!!! failed-non_pipeline-read : {:?}",_e);
+                    println!("### failed-non_pipeline-read : {:?}",_e);
                     return Err("connection_closed-read");
                 }
             }
@@ -211,7 +221,7 @@ pub async fn process_mail(connection:&mut Connected,commands:&mut Vec<String>,fe
             match io::secure_read_qued(connection).await{
                 Ok(responses)=>{
                     for response in responses{
-                        // println!(">>> response : {:?} {:?}",index,response.result);
+                        // println!("### response : {:?} {:?}",index,response.result);
                         if index == 0{
                             if !response.result{
                                 return Err("failed-from_command");
@@ -245,7 +255,7 @@ pub async fn process_mail(connection:&mut Connected,commands:&mut Vec<String>,fe
     match io::secure_send(connection,body).await{
         Ok(_)=>{},
         Err(_)=>{
-            // println!("!!! failed-email_command-send");
+            // println!("### failed-email_command-send");
             return Err("connection_closed-write");
         }
     }
@@ -254,7 +264,7 @@ pub async fn process_mail(connection:&mut Connected,commands:&mut Vec<String>,fe
     match io::secure_read_qued(connection).await{
         Ok(responses)=>{
             for response in responses{
-                // println!(">>> response : {:?}",response);
+                // println!("### response : {:?}",response);
                 if !response.result{
                     return Err("smtp_error");
                 }
@@ -271,6 +281,8 @@ pub async fn process_mail(connection:&mut Connected,commands:&mut Vec<String>,fe
 
 pub async fn build_smtp_connection(config:&mut Connection)->Result<(Connected,Features),&'static str>{
 
+    // println!("### called-build_smtp_connection");
+
     let mut connection:Connected;
     let port:u32;
     match connect::init(config).await{
@@ -280,6 +292,8 @@ pub async fn build_smtp_connection(config:&mut Connection)->Result<(Connected,Fe
         }
     }
 
+    // println!("### connection_init-build_smtp_connection");
+
     //wait for helo
     match io::secure_read(&mut connection).await{
         Ok(read)=>{
@@ -288,10 +302,12 @@ pub async fn build_smtp_connection(config:&mut Connection)->Result<(Connected,Fe
             }
         },
         Err(_e)=>{
-            println!("!!! failed-wait_for_hello : {:?}",_e);
+            println!("### failed-wait_for_hello : {:?}",_e);
             return Err("failed-wait_for_hello");
         }
     }
+
+    // println!("### hello_received-build_smtp_connection");
 
     let features:Features;
     match io::secure_send_with_features(&mut connection,format!("EHLO {}\r\n",config.server_name)).await{
@@ -306,7 +322,7 @@ pub async fn build_smtp_connection(config:&mut Connection)->Result<(Connected,Fe
                         }
                     },
                     Err(_e)=>{
-                        // println!("!!! failed-reply_hello : {:?}",_e);
+                        // println!("### failed-reply_hello : {:?}",_e);
                         return Err("failed-send-HELO");
                     }
                 }
@@ -315,10 +331,12 @@ pub async fn build_smtp_connection(config:&mut Connection)->Result<(Connected,Fe
             }
         },
         Err(_e)=>{
-            println!("!!! failed-send-EHLO : {:?}",_e);
+            // println!("### failed-send-EHLO : {:?}",_e);
             return Err("failed-send-EHLO");
         }
     }
+
+    // println!("### features_parsed-build_smtp_connection");
 
     if features.start_tls{
         match connection{
@@ -328,7 +346,7 @@ pub async fn build_smtp_connection(config:&mut Connection)->Result<(Connected,Fe
                         if response.result{
                             match connect::start_tls(connection, config.domain.clone(), &port).await{
                                 Ok(v)=>{
-                                    // println!(">>>>>> start_tls complete");
+                                    // println!("###### start_tls complete");
                                     connection = v;
                                 },
                                 Err(_)=>{
@@ -338,7 +356,7 @@ pub async fn build_smtp_connection(config:&mut Connection)->Result<(Connected,Fe
                         }
                     },
                     Err(_e)=>{
-                        println!("!!! failed-reply_hello : {:?}",_e);
+                        println!("### failed-reply_hello : {:?}",_e);
                         return Err("failed-wait_for_hello");
                     }
                 }
@@ -346,6 +364,8 @@ pub async fn build_smtp_connection(config:&mut Connection)->Result<(Connected,Fe
             _=>{}
         }
     }
+
+    // println!("### connection_built-build_smtp_connection");
 
     return Ok((connection,features));
 

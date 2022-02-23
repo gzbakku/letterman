@@ -23,14 +23,25 @@ async fn main(){
 // const DOMAIN:&'static str = "dkimvalidator.com";
 // const EMAIL:&'static str = "3f35apdz36lypl@dkimvalidator.com";
 
-const DOMAIN:&'static str = "gmail.com";
-const EMAIL:&'static str = "gzbakku@gmail.com";
+const DOMAIN:&'static str = "dkimvalidator.com";
+const EMAIL:&'static str = "wh7ph3ug6fmoaq@dkimvalidator.com";
 
 //---------------------------------------
 //client
 //---------------------------------------
 
 async fn start_async_client() {
+
+    let key:String;
+    match client::read_key("../secret/ge_dkim_private_key.txt".to_string()).await{
+        Ok(v)=>{
+            key = v;
+        },
+        Err(e)=>{
+            println!("!!! {:?}",e);
+            return;
+        }
+    }
 
     println!(">>> sending mail async");
 
@@ -39,7 +50,7 @@ async fn start_async_client() {
         // String::from("gmail.com"),
         DOMAIN.to_string(),
         String::from("smtp.gzbemail.xyz"),
-        KEY.to_string(),
+        key,
         String::from("dkim"),
         format!("gzbemail.xyz")
     ){
@@ -51,7 +62,7 @@ async fn start_async_client() {
 
     // println!("connection successfull");
 
-    for i in 0..1{
+    for i in 0..(1 as u8){
         conn.add(build_mail_new(i.to_string()));
     }
 
@@ -90,8 +101,12 @@ fn build_mail_new(tracking_id:String) -> client::Email{
     email.subject(String::from("hello world"));
     email.body(String::from("first message\r\nsecond message\r\nthird message"));
 
-    if 1 == 1 {
+    if 1 == 0 {
         email.html(String::from("<html> <header><title>This is title</title></header> <body> <h1>Hello world</h1> </body> </html>"));
+    }
+
+    if 1 == 1 {
+        email.html(HTML.to_string());
     }
 
     if 1 == 0 {
@@ -106,3 +121,123 @@ fn build_mail_new(tracking_id:String) -> client::Email{
     return email;
 
 }
+
+const HTML:&'static str = r#"
+<html>
+    <head>
+        <title>GzbEmail</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@200&family=Roboto:wght@100;300&display=swap');
+            * {
+                font-family:"Nunito";
+            }
+            .logo{
+                padding: 10px;
+                height:150px;
+                /* border:5px solid green; */
+            }
+            .logo-img{
+                display:inline-block;
+                height:80px;
+                width: auto;
+                /* border:5px solid blue; */
+            }
+            .logo-text{
+                padding-top: 25px;
+                font-size: 32px;
+                vertical-align: top;
+                display:inline-block;
+                /* border:5px solid red; */
+                color:#d0cdff;
+                font-weight: bold;
+            }
+            .footer{
+                font-weight: bold;
+                text-align: center;
+                margin-top: 100px;
+            }
+            .ud-msg{
+                padding: 10px;
+                font-size: 24px;
+            }
+                .ud-msg-center{
+                    /* text-align: center; */
+                }
+            .otp{
+                margin-top: 50px;
+                max-width: 500px;
+                margin: auto;
+                /* border:5px solid red; */
+                display: grid;
+                grid-template-columns: 300px auto;
+                text-align: center;
+            }
+                .otp-tag{
+                    color:#ed005f;
+                    padding: 10px;
+                    font-size: 24px;
+                    word-break: break-all;
+                    /* border:5px solid green; */
+                    font-weight: bold;
+                }
+                .otp-val{
+                    padding: 10px;
+                    font-size: 24px;
+                    word-break: break-all;
+                    /* border:5px solid purple; */
+                    font-weight: bold;
+                }
+
+            
+
+            .links{
+                
+            }
+                .link{
+                    background-color: #ed005f;
+                    padding: 10px;
+                    border-radius: 10px;
+                    margin: 10px;
+                    display: inline-block;
+                    color:white;
+                    font-size: 24px;
+                    font-weight: bold;
+                    text-decoration: none;
+                }
+
+            .heading{
+                padding:10px;
+            }
+
+            @media only screen and (max-width: 600px) {
+                .otp {
+                    width:100%;
+                    display: block;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="logo">
+            <img src="https://gzbemail.xyz/assets/images/logo.png" class="logo-img" alt="">
+            <div class="logo-text">GZBEMAIL</div>
+        </div>
+            <h1 class="heading">Some Heading</h1>
+            <div class="ud-msg ud-msg-center">
+                Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.
+            </div>
+            <div class="otp">
+                <div class="otp-tag">Account Activation Otp</div>
+                <div class="otp-val">356987</div>
+            </div>
+            <div class="links">
+                <a class="link" href="https://gzbemail.xyz">some link</a>
+            </div> 
+        {add}
+        <div class="footer">
+            &#169; GzbAkku
+        </div>
+    </body>
+</html>
+"#;

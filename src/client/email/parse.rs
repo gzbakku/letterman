@@ -107,11 +107,11 @@ pub async fn init(email:Email,conn:&Connection)->Result<(Vec<String>,String,u64)
     if alternatives{
         body.push_str(&format!(r#"Content-Type: text/plain; charset="UTF-8""#));
         body.push_str(&"\r\n");body.push_str(&"\r\n");
-        body.push_str(&format!("{}\r\n",&email.body));
+        body.push_str(&format!("{}\r\n",clean_text(&email.body)));
         body.push_str(&format!("--000000000000dbc95d05d2847225\r\n"));
         body.push_str(&format!(r#"Content-Type: text/html; charset="UTF-8""#));
         body.push_str(&"\r\n");body.push_str(&"\r\n");
-        body.push_str(&format!("{}\r\n",&email.html));
+        body.push_str(&format!("{}\r\n",clean_text(&email.html)));
         if with_files{
             body.push_str(&format!("--000000000000dbc95d05d2847225--\r\n"));
         }
@@ -120,12 +120,12 @@ pub async fn init(email:Email,conn:&Connection)->Result<(Vec<String>,String,u64)
         if email.body.len() > 0{
             body.push_str(&format!(r#"Content-Type: text/plain; charset="UTF-8""#));
             body.push_str(&"\r\n");body.push_str(&"\r\n");
-            body.push_str(&format!("{}\r\n",&email.body));
+            body.push_str(&format!("{}\r\n",clean_text(&email.body)));
         }
         if email.html.len() > 0{
             body.push_str(&format!(r#"Content-Type: text/plain; charset="UTF-8""#));
             body.push_str(&"\r\n");body.push_str(&"\r\n");
-            body.push_str(&format!("{}\r\n",&email.html));
+            body.push_str(&format!("{}\r\n",clean_text(&email.html)));
         }
     }
     if with_files{
@@ -151,11 +151,13 @@ pub async fn init(email:Email,conn:&Connection)->Result<(Vec<String>,String,u64)
     }
 
     if !with_files && !alternatives && !only_html{
-        body.push_str(&format!("{}\r\n",&email.body));
+        body.push_str(&format!("{}\r\n",clean_text(&email.body)));
     }
     if !with_files && !alternatives && only_html{
-        body.push_str(&format!("{}\r\n",&email.html));
+        body.push_str(&format!("{}\r\n",clean_text(&email.html)));
     }
+
+    // println!("{}",body);
 
     dkim.push_str(&"v=1;");
     dkim.push_str(&" a=rsa-sha256;");
@@ -186,10 +188,12 @@ pub async fn init(email:Email,conn:&Connection)->Result<(Vec<String>,String,u64)
     commands.push(format!("{}\r\n{}\r\n.\r\n",headers,body));
 
     // match crate::io::write_file(
-    //     "D:\\workstation\\expo\\rust\\letterman\\letterman_email_body_parser\\sldv_smpl_.txt".to_string(),
+    //     "D:\\workstation\\expo\\rust\\letterman\\letterman_email_body_parser\\ge_html_ww.txt".to_string(),
     //     commands[3].clone().as_bytes().to_vec()
     // ).await{
-    //     Ok(_)=>{},
+    //     Ok(_)=>{
+    //         println!(">>>>>>>>>>>>>>>>> write complete");
+    //     },
     //     Err(_e)=>{
     //         println!("!!!!! failed-make sample file : {:?}",_e);
     //     }
@@ -210,6 +214,37 @@ pub async fn init(email:Email,conn:&Connection)->Result<(Vec<String>,String,u64)
 
     return Ok((commands,email.tracking_id,size));
 
+}
+
+fn clean_text(text:&String)->String{
+    let base = text.to_string();
+    let clean_1 = base.trim_start().to_string();
+    let mut build = clean_1.trim_end().to_string();
+    loop{
+        if !build.contains("\r\n"){
+            break;
+        }
+        build = build.replace("\r\n","+999++9+999+9+9+999+9");
+    }
+    loop{
+        if !build.contains("\n"){
+            break;
+        }
+        build = build.replace("\n","+999++9+999+9+9+999+9");
+    }
+    let pool:Vec<&str> = build.split("+999++9+999+9+9+999+9").collect();
+    let mut rebuild = String::new();
+    for mut i in pool{
+        i = i.trim_start();
+        if i.len() > 0{
+            if rebuild.len() > 0{
+                rebuild.push_str(&format!("\r\n{}",i));
+            } else {
+                rebuild.push_str(&format!("{}",i));
+            }
+        }
+    }
+    return rebuild;
 }
 
 async fn parse_files(files:Vec<String>)->Result<String,&'static str>{

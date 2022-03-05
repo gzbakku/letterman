@@ -6,6 +6,8 @@ import sys
 
 def main():
 
+    print("king ping")
+
     w = executer.confirm()
     if not w:
         return
@@ -37,22 +39,20 @@ def main():
         if "-u" in sys.argv:
             base_path = "/mnt/d/workstation/expo/rust/letterman"
 
+        print(base_path +"/secret/ge_dkim_private_key.txt")
+
         client.log("uploading letterman 1 executable")
         client.upload(
             base_path +"/letterman/target/release/letterman",
             "letterman"
         )
 
+        print(base_path +"/secret/ge_dkim_private_key.txt")
+
         client.log("uploading ge_private_key executable")
         client.upload(
             base_path +"/secret/ge_dkim_private_key.txt",
             "ge_dkim_private_key.txt"
-        )
-
-        client.log("uploading gl_alt_atch.txt")
-        client.upload(
-            base_path +"/letterman/gl_alt_atch.txt",
-            "gl_alt_atch.txt"
         )
 
     if True:

@@ -62,7 +62,7 @@ async fn start_async_client() {
 
     let key:String;
     //"../secret/private.key"
-    match client::read_key("../secret/ge_dkim_private_key.txt".to_string()).await{
+    match client::read_key("../secret/gzbemail.private_key".to_string()).await{
         Ok(v)=>{
             key = v;
         },
@@ -104,7 +104,6 @@ async fn start_async_client() {
                 return;
             }
         }
-        conn.enable_danger_accept(true);
     } else if SEND_TO_ANYONE {
         match Connection::new(
             String::from("xijih27584@veb34.com"),
@@ -173,7 +172,7 @@ fn build_mail_new(tracking_id:String) -> client::Email{
         email.html(String::from("<html> <header><title>This is title</title></header> <body> <h1>Hello world</h1> </body> </html>"));
     }
 
-    if 1 == 0 {
+    if 1 == 1 {
         email.attach("d://workstation/expo/rust/letterman/letterman/drink.png".to_string());
     }
 

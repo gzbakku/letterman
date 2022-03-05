@@ -6,6 +6,11 @@ mod connection;
 pub use email::{Email,Action};
 pub use connection::Connection;
 
+#[derive(Debug,Copy,Clone)]
+pub enum ClientEmailError{
+    From,To,Data,Body,InvalidBody,ConnectionError
+}
+
 ///
 ///```
 /// use std::time::Instant;

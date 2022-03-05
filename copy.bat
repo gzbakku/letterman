@@ -1,1 +1,1 @@
-copy "d://workstation/expo/rust/letterman/letterman/target/release/letterman.exe" "d://workstation/expo/rust/letterman/built/letterman.exe"
+copy "d://workstation/expo/rust/letterman/letterman/target/debug/letterman.exe" "d://workstation/expo/rust/letterman/built/letterman.exe"

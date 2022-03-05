@@ -18,7 +18,7 @@ def init():
     secondary_username = c["secondary_username"]
     secondary_password = c["secondary_password"]
 
-    if True:
+    if False:
         session = executer.start_session(s)
         builder = Commands()
         builder.log("adding user")

@@ -2,6 +2,7 @@ use tokio::fs::{File,remove_file,create_dir_all};
 use tokio::io::{AsyncReadExt,AsyncWriteExt};
 use std::env::current_dir;
 
+#[allow(dead_code)]
 pub async fn read_as_text(path:String) -> Result<String,&'static str>{
     match read_file_raw(path).await{
         Ok(buffer)=>{
@@ -17,6 +18,7 @@ pub async fn read_as_text(path:String) -> Result<String,&'static str>{
     }
 }
 
+#[allow(dead_code)]
 pub async fn read_file_raw(path:String) -> Result<Vec<u8>,&'static str>{
     match File::open(path).await{
         Ok(mut reader)=>{
@@ -86,6 +88,7 @@ pub fn cwd()->String{
     }
 }
 
+#[allow(dead_code)]
 pub async fn ensure_file_dir(path:String)->Result<(),&'static str>{
     let mut path = path;
     while path.contains("\\"){
@@ -106,6 +109,7 @@ pub async fn ensure_file_dir(path:String)->Result<(),&'static str>{
     }
 }
 
+#[allow(dead_code)]
 pub async fn ensure_dir(path:String)->Result<(),&'static str>{
     match create_dir_all(path).await{
         Ok(_)=>{return Ok(());},

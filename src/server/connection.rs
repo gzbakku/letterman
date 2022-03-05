@@ -61,6 +61,8 @@ where
     let mut que_sender = que_sender;
     let info_lock = info.read().await;
 
+    // println!("### connection started");
+
     //------------------------------
     //say hello
     //------------------------------
@@ -72,6 +74,8 @@ where
             return error(stream,DOWN).await;
         }
     }
+
+    // println!("### helo sent");
 
     //get ehlo response
     let server_name:String;
@@ -331,7 +335,12 @@ where
 
         if email.status == 4{
             // println!("BODY");
+            // println!("{:?}",message);
             let hold:Vec<&str> = message.split("\r\n").collect();
+            // if hold[hold.len()-1].len() == 0{
+            //     hold.remove(hold.len()-1);
+            // }
+            // println!("\n{:?}\n",hold);
             match EmailBodyParser(hold,&info_lock.email_body_parser_config){
                 Ok(mut email_body)=>{
                     if info_lock.validate_dkim{//if dkim validation is turned on

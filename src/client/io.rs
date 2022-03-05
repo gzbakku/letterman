@@ -133,6 +133,7 @@ pub async fn secure_read(connected:&mut Connected) -> Result<READ,&'static str> 
     loop {
         match connected{
             Connected::Secure(ref mut stream)=>{
+                // println!("-------secure_read-Secure");
                 match timeout(Duration::from_secs(TIMEOUT_DURATION),stream.read(&mut buff)).await{
                     Ok(r)=>{
                         match r{
@@ -151,8 +152,10 @@ pub async fn secure_read(connected:&mut Connected) -> Result<READ,&'static str> 
                 }
             },
             Connected::InSecure(ref mut stream)=>{
+                // println!("-------secure_read-InSecure");
                 match timeout(Duration::from_secs(TIMEOUT_DURATION),stream.read(&mut buff)).await{
                     Ok(r)=>{
+                        // println!("-------secure_read-InSecure-here");
                         match r{
                             Ok(len)=>{
                                 for i in 0..len{collect.push(buff[i].clone());}
@@ -164,6 +167,7 @@ pub async fn secure_read(connected:&mut Connected) -> Result<READ,&'static str> 
                         }
                     },
                     Err(_)=>{
+                        // println!("-------secure_read-InSecure-there");
                         return Err("timeout");
                     }
                 }

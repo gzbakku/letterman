@@ -37,7 +37,7 @@ pub async fn init(connection:&mut Connection)->Result<(Connected,u32),&'static s
         }
         let domain = mx_records.remove(0);
         for port in PORTS{
-            match start_connection(domain.clone(), port).await{
+            match start_connection(domain.clone(), port, &connection).await{
                 Ok(v)=>{
                     // println!("{} {} => ok",&domain, &port);
                     return Ok((v,port.clone()));
@@ -52,7 +52,7 @@ pub async fn init(connection:&mut Connection)->Result<(Connected,u32),&'static s
 
 }
 
-async fn start_connection(domain:String,port:&u32)->Result<Connected,&'static str>{
+async fn start_connection(domain:String,port:&u32,config:&Connection)->Result<Connected,&'static str>{
 
     // println!("### called-start_connection-connect");
 
@@ -90,10 +90,12 @@ async fn start_connection(domain:String,port:&u32)->Result<Connected,&'static st
 
     // println!("### TcpStream-start_connection-connect");
 
-    match TlsConnector::builder()
-    // .danger_accept_invalid_certs(true)
-    .build()
-    {
+    let mut tls_builder = TlsConnector::builder();
+    if config.enable_danger_accept{
+        tls_builder.danger_accept_invalid_certs(true);
+    }
+
+    match tls_builder.build(){
         Ok(base)=>{
 
             // println!("### TlsConnector-start_connection-connect");

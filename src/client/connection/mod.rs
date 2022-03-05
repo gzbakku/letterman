@@ -2,7 +2,7 @@ use openssl::pkey::{PKey,Private};
 use crate::client::email::Email;
 // use tokio_native_tls::TlsStream;
 // use tokio::net::TcpStream;
-use crate::client::io;
+use crate::client::{io,ClientEmailError};
 
 mod connect;
 
@@ -27,8 +27,10 @@ pub struct Connection{
     pub emails:Vec<Email>,
     // pub verify:Vec<String>,
     pub sender_domain:String,
+    pub enable_danger_accept:bool
 }
 
+#[allow(dead_code)]
 impl Connection{
     pub fn new(
         domain:String,
@@ -53,7 +55,8 @@ impl Connection{
             dkim_selector:dkim_selector,
             emails:vec![],
             // verify:vec![],
-            sender_domain:sender_domain
+            sender_domain:sender_domain,
+            enable_danger_accept:false
         });
     }
     pub fn add(&mut self,email:Email){self.emails.push(email);}
@@ -66,7 +69,8 @@ impl Connection{
     //         Err(e)=>{return Err(e);}
     //     }
     // }
-    pub async fn send(&mut self)->Result<(Vec<String>,Vec<String>),&'static str>{
+    pub fn enable_danger_accept(&mut self,v:bool){if v{self.enable_danger_accept = true;}}
+    pub async fn send(&mut self)->Result<(Vec<String>,Vec<(String,ClientEmailError)>),&'static str>{
         match send_emails(self).await{
             Ok(_v)=>{return Ok(_v);},
             Err(e)=>{return Err(e);}
@@ -74,7 +78,7 @@ impl Connection{
     }
 }
 
-async fn send_emails(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&'static str>{
+async fn send_emails(config:&mut Connection)->Result<(Vec<String>,Vec<(String,ClientEmailError)>),&'static str>{
 
     // println!("### called-send_emails");
 
@@ -109,6 +113,8 @@ async fn send_emails(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&
         }
     }
 
+    // features.pipeline = false;
+
     // println!("### connected-send_emails");
 
     if features.limit_size{
@@ -121,7 +127,7 @@ async fn send_emails(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&
 
     // println!("### checked-send_emails");
 
-    // println!("### features : {:?}",features);
+    // println!("\n\n### features : {:?}\n\n",features);
 
     //parse email
     let mut failed = Vec::new();
@@ -137,7 +143,7 @@ async fn send_emails(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&
             },
             Err(_e)=>{
                 // println!("### send_mail_error : {:?}",_e);
-                failed.push(tracking_id);
+                failed.push((tracking_id,_e));
                 match io::secure_send_with_response(&mut connection,"RSET\r\n".to_string()).await{
                     Ok(response)=>{
                         if !response.result{
@@ -161,57 +167,82 @@ async fn send_emails(config:&mut Connection)->Result<(Vec<String>,Vec<String>),&
 
 }
 
-pub async fn process_mail(connection:&mut Connected,commands:&mut Vec<String>,features:&Features)->Result<(),&'static str>{
+pub async fn process_mail(connection:&mut Connected,commands:&mut Vec<String>,features:&Features)->Result<(),ClientEmailError>{
 
     // println!("### process_mail");
 
     let body:String;
     match commands.pop(){
         Some(v)=>{body = v;},
-        None=>{return Err("not-found-body");}
+        None=>{return Err(ClientEmailError::InvalidBody);}
     }
     let batch_commands_len = commands.len();
 
+    let mut to_allowed = 0;
+    let mut index = 0;
     loop{
 
         if commands.len() == 0{
             break;
         }
 
+        if commands.len() == 1 && !features.pipeline{
+            if to_allowed == 0{
+                return Err(ClientEmailError::To);
+            }
+        }
+
         let command = commands.remove(0);
+
+        // println!("\n\n command : {:?}\n\n",command);
 
         match io::secure_send(connection,command).await{
             Ok(_)=>{},
             Err(_)=>{
-                println!("### failed-email_command-send");
-                return Err("connection_closed-write");
+                // println!("### failed-email_command-send");
+                return Err(ClientEmailError::ConnectionError);
             }
         }
-
-        // println!("{:?}",command);
 
         // println!("### command_sent");
         
         if !features.pipeline{
             match io::secure_read(connection).await{
                 Ok(response)=>{
-                    // println!("### response : {:?}",response);
+                    // println!("response : {:?} {:?}\n\n",response,commands.len());
                     if !response.result{
-                        println!("### non-pipeline response : {:?}",response);
-                        return Err("smtp_error");
+                        //from command
+                        if index == 0{
+                            return Err(ClientEmailError::From);
+                        }
+                        if commands.len() == 0{
+                            return Err(ClientEmailError::Data);
+                        }
+                        // println!("### non-pipeline response : {:?}",response);
+                        // return Err(ClientEmailError::ConnectionError);
+                    } else {
+                        if index > 0 && commands.len() > 0{
+                            to_allowed += 1;
+                        }
                     }
                 },
                 Err(_e)=>{
                     println!("### failed-non_pipeline-read : {:?}",_e);
-                    return Err("connection_closed-read");
+                    return Err(ClientEmailError::ConnectionError);
                 }
             }
         }
 
+        index += 1;
+
+    }
+
+    if to_allowed == 0 && !features.pipeline{
+        return Err(ClientEmailError::To);
     }
 
     if features.pipeline{
-        let mut index = 0;
+        index = 0;
         let mut to_command = 0;
         loop{
             if index == batch_commands_len{
@@ -224,7 +255,7 @@ pub async fn process_mail(connection:&mut Connected,commands:&mut Vec<String>,fe
                         // println!("### response : {:?} {:?}",index,response.result);
                         if index == 0{
                             if !response.result{
-                                return Err("failed-from_command");
+                                return Err(ClientEmailError::From);
                             }
                         }
                         if index > 0 && index < batch_commands_len-1{
@@ -235,28 +266,43 @@ pub async fn process_mail(connection:&mut Connected,commands:&mut Vec<String>,fe
                         }
                         if index == batch_commands_len-1{
                             if !response.result{
-                                return Err("failed-data_command");
+                                return Err(ClientEmailError::Data);
                             }
                         }
                         index += 1;
                     }
                 },
                 Err(_)=>{
-                    return Err("connection_closed-read_qued");
+                    return Err(ClientEmailError::ConnectionError);
                 }
             }//process responses   
         }//loop all tyhe repsonses
         if to_command == 0{
-            return Err("no_valid_receivers");
+            println!("to to to to to");
+            return Err(ClientEmailError::To);
         }
     }
+
+    // println!("body.contains : {:?}",body.contains("\r\n.\r\n"));
+
+    // let k = body.clone();
+    // loop{
+    //     if k.contains("\r\n.\r\n"){
+    //         k = k.replace("\r\n.\r\n","");
+    //         println!("replaced");
+    //     } else {
+    //         break;
+    //     }
+    // }
+
+    // println!("\n--------\\n{}\n--------\n",k);
 
     //send body
     match io::secure_send(connection,body).await{
         Ok(_)=>{},
         Err(_)=>{
             // println!("### failed-email_command-send");
-            return Err("connection_closed-write");
+            return Err(ClientEmailError::ConnectionError);
         }
     }
 
@@ -266,12 +312,12 @@ pub async fn process_mail(connection:&mut Connected,commands:&mut Vec<String>,fe
             for response in responses{
                 // println!("### response : {:?}",response);
                 if !response.result{
-                    return Err("smtp_error");
+                    return Err(ClientEmailError::Body);
                 }
             }
         },
         Err(_)=>{
-            return Err("connection_closed-read_qued");
+            return Err(ClientEmailError::ConnectionError);
         }
     }
 

@@ -8,9 +8,8 @@ use openssl::sha::Sha256;
 use openssl::sign::Signer;
 use openssl::pkey::{PKey,Private};
 use openssl::hash::MessageDigest;
-// #[allow(unused_imports)]
-// use quoted_printable::encode_to_str as QPEncoder;
-use base64::encode as Base64Encoder;
+use quoted_printable::encode_to_str as QPEncoder;
+// use base64::encode as Base64Encoder;
 
 pub async fn init(email:Email,conn:&Connection)->Result<(Vec<String>,String,u64),&'static str>{
 
@@ -114,8 +113,8 @@ pub async fn init(email:Email,conn:&Connection)->Result<(Vec<String>,String,u64)
         body.push_str(&format!("--000000000000dbc95d05d2847225\r\n"));
         body.push_str(&format!(r#"Content-Type: text/html; charset="UTF-8""#));
         // body.push_str(&format!(r#"Content-Type: text/html; charset="US-ASCII""#));
-        // body.push_str(&format!("\r\nContent-Transfer-Encoding: quoted-printable"));
-        body.push_str(&format!("\r\nContent-Transfer-Encoding: base64"));
+        body.push_str(&format!("\r\nContent-Transfer-Encoding: quoted-printable"));
+        // body.push_str(&format!("\r\nContent-Transfer-Encoding: base64"));
         // println!("where");
         // body.push_str(&"\r\n");
         // body.push_str(&format!("\r\nContent-Transfer-Encoding: 8BIT"));
@@ -294,21 +293,12 @@ fn clean_text(text:&String)->String{
 }
 
 fn clean_html(text:&String)->String{
-    let base = build_line(Base64Encoder(text));
+    let mut base = clean_text(text);
+    base = replace_text(base, "\r\n", "");
+    base = build_line(base);
+    base = QPEncoder(base);
     return base;
 }
-
-// fn get_line_section_len(base:String){
-//     let mut collect = vec![];
-//     let hold:Vec<&str> = base.split("\r\n").collect();
-//     for line in hold{
-//         collect.push(line.len());
-//         if line.len() == 1{
-//             println!("short line : {:?}",line);
-//         }
-//     }
-//     println!("line len : {:?}",collect);
-// }
 
 fn replace_text(mut text:String,find:&'static str,replace:&'static str)->String{
     loop{

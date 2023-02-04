@@ -22,7 +22,7 @@ quoted_printable = "0.4.3"
 base64 = "0.13.0"
 trust-dns-resolver = "0.20.3"
 native-tls = "0.2.8"
-tokio = { version = "1.15.0", features = ["full"] }
+tokio = { version = "1.18.5", features = ["full"] }
 openssl = "0.10.30"
 chrono = "0.4.19"
 md5 = "0.7.0"

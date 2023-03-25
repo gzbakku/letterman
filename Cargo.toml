@@ -23,7 +23,7 @@ base64 = "0.13.0"
 trust-dns-resolver = "0.20.3"
 native-tls = "0.2.8"
 tokio = { version = "1.15.0", features = ["full"] }
-openssl = "0.10.30"
+openssl = "0.10.48"
 chrono = "0.4.19"
 md5 = "0.7.0"
 rustls-pemfile = "0.2.1"
